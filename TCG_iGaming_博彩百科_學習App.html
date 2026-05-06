@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="博彩百科">
+<meta name="theme-color" content="#0f0f1a">
+<title>TCG iGaming 博彩百科</title>
+<style>
+:root {
+  --bg:#0f0f1a; --card:#1a1a2e; --card2:#16213e;
+  --accent:#e94560; --accent2:#0f3460; --gold:#f5a623;
+  --text:#e8e8f0; --muted:#8888aa; --border:#2a2a4a; --green:#27ae60;
+  --r:16px; --safe-t:env(safe-area-inset-top); --safe-b:env(safe-area-inset-bottom);
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+body {
+  font-family:-apple-system,"PingFang TC","Heiti TC",sans-serif;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; overflow-x:hidden;
+  padding-bottom:calc(80px + var(--safe-b));
+}
+.nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  background:rgba(15,15,26,0.95);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:calc(var(--safe-t) + 10px) 16px 10px;
+  display:flex; align-items:center; gap:12px;
+}
+.nav-title {
+  font-size:17px; font-weight:700; flex:1;
+  background:linear-gradient(135deg,var(--accent),var(--gold));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.nav-badge { font-size:12px; color:var(--muted); background:var(--card); padding:3px 8px; border-radius:10px; }
+.page { display:none; padding-top:calc(var(--safe-t) + 56px); }
+.page.active { display:block; }
+.search-wrap { padding:10px 16px 6px; }
+.search-inp {
+  width:100%; padding:10px 16px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; color:var(--text); font-size:15px; outline:none;
+}
+.search-inp:focus { border-color:var(--accent); }
+.search-inp::placeholder { color:var(--muted); }
+.alpha-nav { display:flex; flex-wrap:wrap; gap:5px; padding:4px 16px 8px; }
+.alpha-btn {
+  padding:4px 9px; border-radius:8px;
+  background:var(--card); border:1px solid var(--border);
+  color:var(--muted); font-size:12px; cursor:pointer; transition:all .2s;
+}
+.alpha-btn.on { background:var(--accent); border-color:var(--accent); color:white; }
+.term-list { padding:0 16px 8px; }
+.sec-hdr { font-size:12px; font-weight:700; color:var(--accent); padding:10px 0 4px; letter-spacing:1px; }
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:13px 15px; margin-bottom:9px;
+  cursor:pointer; transition:transform .15s, border-color .15s;
+}
+.card:active { transform:scale(.98); border-color:var(--accent); }
+.card-hdr { display:flex; justify-content:space-between; align-items:flex-start; }
+.card-en { font-size:15px; font-weight:600; flex:1; }
+.card-num { font-size:11px; color:var(--muted); margin-left:8px; margin-top:2px; }
+.card-zh { font-size:13px; color:var(--gold); margin-top:4px; }
+.card-preview { font-size:12px; color:var(--muted); margin-top:5px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.empty { text-align:center; padding:60px 20px; color:var(--muted); font-size:15px; }
+.overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.7); display:none; align-items:flex-end; }
+.overlay.open { display:flex; }
+.modal {
+  background:var(--card); border-radius:24px 24px 0 0;
+  width:100%; max-height:85vh; overflow-y:auto;
+  padding:12px 20px calc(24px + var(--safe-b));
+  animation:up .3s ease;
+}
+@keyframes up { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 14px; }
+.modal-en { font-size:22px; font-weight:700; }
+.modal-zh { font-size:17px; color:var(--gold); font-weight:600; margin-top:5px; }
+.modal-hr { border:none; border-top:1px solid var(--border); margin:12px 0; }
+.modal-desc { font-size:15px; line-height:1.8; }
+.modal-tag { display:inline-block; font-size:11px; color:var(--muted); background:var(--bg); padding:2px 8px; border-radius:8px; margin-bottom:8px; }
+.flash-page { padding:0 16px; }
+.flash-prog { text-align:center; font-size:13px; color:var(--muted); margin-bottom:10px; }
+.flash-bar { height:4px; background:var(--border); border-radius:2px; margin-top:5px; overflow:hidden; }
+.flash-fill { height:100%; background:var(--accent); transition:width .3s; border-radius:2px; }
+.fc { width:100%; aspect-ratio:3/2; perspective:1000px; cursor:pointer; margin-bottom:14px; }
+.fc-inner { width:100%; height:100%; transition:transform .5s; transform-style:preserve-3d; position:relative; }
+.fc.flipped .fc-inner { transform:rotateY(180deg); }
+.face { position:absolute; inset:0; border-radius:var(--r); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.face-f { background:linear-gradient(135deg,var(--accent2),#0a1a3a); border:1px solid var(--border); }
+.face-b { background:linear-gradient(135deg,#1a0a2e,#2e0a1a); border:1px solid var(--accent); transform:rotateY(180deg); }
+.face-lbl { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+.face-en { font-size:22px; font-weight:700; text-align:center; color:white; line-height:1.3; }
+.face-zh { font-size:24px; font-weight:700; text-align:center; color:var(--gold); }
+.face-desc { font-size:12px; color:#ccc; text-align:center; margin-top:8px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.face-hint { font-size:11px; color:var(--muted); margin-top:6px; }
+.fc-btns { display:flex; gap:10px; }
+.fc-btn { flex:1; padding:13px; border-radius:12px; border:none; font-size:14px; font-weight:600; cursor:pointer; }
+.fc-btn:active { opacity:.7; }
+.fc-prev { background:var(--card2); color:var(--text); }
+.fc-next { background:var(--accent); color:white; }
+.fc-shuf { width:100%; margin-top:8px; padding:11px; border-radius:12px; background:var(--card); border:1px solid var(--border); color:var(--muted); font-size:13px; cursor:pointer; }
+.quiz-page { padding:0 16px; }
+.quiz-hdr { font-size:13px; color:var(--muted); margin-bottom:10px; }
+.quiz-q { background:var(--card); border-radius:var(--r); padding:18px; margin-bottom:14px; border:1px solid var(--border); }
+.quiz-ql { font-size:11px; color:var(--accent); margin-bottom:6px; letter-spacing:1px; text-transform:uppercase; }
+.quiz-qt { font-size:18px; font-weight:700; }
+.opts { display:flex; flex-direction:column; gap:9px; }
+.opt { padding:13px 15px; border-radius:12px; background:var(--card2); border:1px solid var(--border); color:var(--text); font-size:14px; cursor:pointer; text-align:left; font-family:inherit; }
+.opt:active { transform:scale(.98); }
+.opt.correct { background:#1a3a1a; border-color:var(--green); color:#7eff7e; }
+.opt.wrong { background:#3a1a1a; border-color:var(--accent); color:#ff7e7e; }
+.opt.dis { pointer-events:none; }
+.fb { margin-top:12px; padding:13px; border-radius:12px; display:none; font-size:14px; }
+.fb.show { display:block; }
+.fb.ok { background:#1a3a1a; color:#7eff7e; }
+.fb.bad { background:#3a1a1a; color:#ff7e7e; }
+.nxt-btn { width:100%; margin-top:10px; padding:13px; background:var(--accent); color:white; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; display:none; }
+.nxt-btn.show { display:block; }
+.score { text-align:center; padding:50px 20px; }
+.score-n { font-size:56px; font-weight:700; color:var(--gold); }
+.score-l { font-size:15px; color:var(--muted); margin-top:4px; }
+.score-r { margin-top:22px; padding:13px 32px; background:var(--accent); color:white; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; }
+.tabs {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  background:rgba(15,15,26,.97);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  display:flex; padding:8px 0 calc(8px + var(--safe-b));
+}
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--muted); font-size:10px; padding:4px; cursor:pointer; }
+.tab.on { color:var(--accent); }
+.tab-ico { font-size:22px; line-height:1; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">📚 TCG iGaming 博彩百科</div>
+  <div class="nav-badge">286 詞</div>
+</div>
+
+<div class="overlay" id="ov">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-tag" id="mTag"></div>
+    <div class="modal-en" id="mEn"></div>
+    <div class="modal-zh" id="mZh"></div>
+    <hr class="modal-hr">
+    <div class="modal-desc" id="mDesc"></div>
+  </div>
+</div>
+
+<div id="p-browse" class="page active">
+  <div class="search-wrap">
+    <input class="search-inp" type="search" id="si" placeholder="🔍 搜尋英文或中文術語...">
+  </div>
+  <div class="alpha-nav" id="aN"></div>
+  <div class="term-list" id="tL"></div>
+</div>
+
+<div id="p-flash" class="page">
+  <div class="flash-page">
+    <div class="flash-prog">
+      <span id="fp">1 / 286</span>
+      <div class="flash-bar"><div class="flash-fill" id="ff"></div></div>
+    </div>
+    <div class="fc" id="fc">
+      <div class="fc-inner">
+        <div class="face face-f">
+          <div class="face-lbl">英文術語</div>
+          <div class="face-en" id="fEn"></div>
+          <div class="face-hint">點擊翻牌 👆</div>
+        </div>
+        <div class="face face-b">
+          <div class="face-lbl">中文術語</div>
+          <div class="face-zh" id="fZh"></div>
+          <div class="face-desc" id="fDesc"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-btns">
+      <button class="fc-btn fc-prev" id="btnPrev">← 上一張</button>
+      <button class="fc-btn fc-next" id="btnNext">下一張 →</button>
+    </div>
+    <button class="fc-shuf" id="btnShuffle">🔀 隨機排序</button>
+  </div>
+</div>
+
+<div id="p-quiz" class="page">
+  <div class="quiz-page" id="qW"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" id="t-browse" data-tab="browse">
+    <span class="tab-ico">📖</span>瀏覽
+  </button>
+  <button class="tab" id="t-flash" data-tab="flash">
+    <span class="tab-ico">🃏</span>閃卡
+  </button>
+  <button class="tab" id="t-quiz" data-tab="quiz">
+    <span class="tab-ico">🎯</span>測驗
+  </button>
+</div>
+
+<script>
+var T=[{"id": 1, "en": "Account Farming", "zh": "養戶", "desc": "「養戶」是博彩與 iGaming 行業術語，指透過長期培養與維護的真實玩家帳戶。這類帳戶通常具備穩定登入、正常投注及持續活躍等特徵，用於提升平台數據質量或參與活動。養戶強調自然行為，區別於一次性或低質量流量帳號。", "letter": "A"}, {"id": 2, "en": "Account Weight", "zh": "帳戶權重", "desc": "「帳戶權重」是 iGaming 與平台風控常用概念，指系統根據帳號活躍度、充值行為、投注記錄及歷史表現等因素綜合評估的可信度等級。權重較高的帳戶通常限制較少、活動參與度更高，而低權重帳戶可能受到風控或審核限制。", "letter": "A"}, {"id": 3, "en": "ACMA", "zh": "澳大利亞通訊與媒體管理局", "desc": "ACMA（澳大利亞通訊與媒體管理局）是負責澳大利亞線上博彩執法、網站封鎖、廣告監管、違規平台取締的政府機構。雖然澳大利亞允許部分州級博彩運營，但大多數線上博彩形式被《IGA 互動式博彩法》嚴格禁止，因此 ACMA 的主要任務是執法與監管。", "letter": "A"}, {"id": 4, "en": "Activity Ratio", "zh": "活躍率", "desc": "「活躍率」是 iGaming 與用戶運營常用指標，指在一定時間內參與登入或投注的活躍用戶占總用戶數的比例。活躍率越高，代表用戶參與度與留存表現越好，常用於評估平台運營效果與用戶質量。", "letter": "A"}, {"id": 5, "en": "Ad Operator", "zh": "廣告操盤手", "desc": "廣告操盤手（Ad Operator）是指負責購買流量、投放廣告並優化轉化效果的從業者，廣泛存在於博彩、聯盟行銷及灰產流量體系中。其核心職責包括買量、控成本、優化轉化路徑，是流量獲取鏈路中的關鍵角色。", "letter": "A"}, {"id": 6, "en": "Adaptive RTP", "zh": "動態 RTP", "desc": "Adaptive RTP（動態 RTP）指老虎機在玩家「當前行為、遊戲局數、輸贏狀況、投注金額」等條件下，動態改變 RTP（返還率）或數學結構的非法技術行為。⚠ 所有正規的 iGaming 監管（MGA、UKGC、GGL、KSA）明確禁止動態 RTP。", "letter": "A"}, {"id": 7, "en": "Addiction Support", "zh": "防止成癮支持", "desc": "防止成癮支持（Addiction Support）指線上博彩運營商及監管機構為幫助玩家避免賭博成癮而設立的綜合性支持體系。其核心目標是識別高風險行為、提供心理援助、並建立自我限制機制。", "letter": "A"}, {"id": 8, "en": "Advertising Account", "zh": "廣告戶", "desc": "「廣告戶」是 iGaming 與推廣領域常用術語，指專門用於投放廣告的帳戶，通常用於在社交平台、廣告聯盟或搜尋引擎進行推廣引流。廣告戶主要承擔流量獲取功能，其穩定性與權重直接影響廣告投放效果與成本表現。", "letter": "A"}, {"id": 9, "en": "Affiliate Marketing", "zh": "聯盟行銷", "desc": "聯盟行銷（Affiliate Marketing）是指透過推廣鏈結、邀請碼或渠道合作，將用戶引導至平台並根據其後續行為（註冊、充值、下注等）獲得收益的推廣模式。在線上博彩行業中，聯盟行銷不僅是核心獲客渠道，更是構建代理體系與長期收益結構的基礎。", "letter": "A"}, {"id": 10, "en": "Affiliate Program", "zh": "聯盟推廣計畫", "desc": "Affiliate Program 是平台與外部流量主或媒體合作的推廣制度，以「流量導入 → 註冊 → 首存 → 分潤」為核心邏輯。常見結算模式：CPA（按註冊/首存計費）、RevShare（按淨營收分成）、Hybrid（混合模式）。", "letter": "A"}, {"id": 11, "en": "Affiliate System", "zh": "分銷", "desc": "分銷（Affiliate System）是指透過推廣鏈結、邀請碼等方式獲取用戶，並按用戶行為獲得收益的推廣體系，是博彩平台獲客的重要結構之一。", "letter": "A"}, {"id": 12, "en": "Against Momentum", "zh": "賭逆風", "desc": "賭逆風指：比賽走勢明顯朝一方，卻故意下注另一方，賭反轉。例如：對手持續壓境 → 玩家反向買弱隊進球。逆風盤建立在情緒/心理博弈、滾球賠率「滯後」、比賽節奏變動、利用賠率高水性價比等因素上。", "letter": "A"}, {"id": 13, "en": "Agent Line", "zh": "代理線", "desc": "代理線（Agent Line）是指由多個代理節點組成的推廣與收益鏈路結構，是博彩平台流量分發與利潤分配的核心骨架。", "letter": "A"}, {"id": 14, "en": "American Odds", "zh": "美式盤", "desc": "美式盤（American Odds 或 Moneyline Odds）是一種在美國與北美地區廣泛使用的體育博彩賠率格式。正數表示下注 100 可贏多少錢（適用於弱隊），負數表示需要下注多少錢才能贏 100（適用於強隊）。", "letter": "A"}, {"id": 15, "en": "ANJ", "zh": "法國國家博彩管理局", "desc": "ANJ（法國國家博彩管理局）是法國的中央博彩監管機構，負責監督線上博彩（體育、賽馬、撲克）、國家彩票（FDJ）、賽馬投注（PMU）、實體博彩場所（部分）、博彩廣告、KYC、AML、責任博彩機制。ANJ 的權力較 ARJEL 顯著擴大，已成為歐盟監管最嚴格的機構之一。", "letter": "A"}, {"id": 16, "en": "Anti Correct Score", "zh": "反波膽", "desc": "反波膽是一種源自英國並在歐美和中國大陸流行多年的投注方式。反波膽的玩法是投注「比賽最終比分以外」的任何比分，換句話說，只要比賽的最終結果不是下注時所選擇的比分，投注者即獲勝。", "letter": "A"}, {"id": 17, "en": "Anti-Bot System", "zh": "反機器人系統", "desc": "反機器人系統（Anti-Bot）是在線博彩平台用於識別、阻擋和過濾自動化腳本、程式機器人、API 掛機、模擬點擊器的安全風控機制。此系統確保玩家投注行為來自真實用戶，避免博彩平台成為套利腳本或外掛團隊的攻擊目標。", "letter": "A"}, {"id": 18, "en": "Anti-Money Laundering (AML)", "zh": "反洗錢", "desc": "AML（Anti-Money Laundering）中文譯為「反洗錢」。它是一套用於防止非法資金透過合法管道「漂白」的金融合規制度與監管體系，廣泛應用於銀行、證券、加密貨幣、博彩等高風險資金流行業。", "letter": "A"}, {"id": 19, "en": "Arb Line", "zh": "套利盤", "desc": "套利盤指在不同平台或不同盤口之間出現「可構建無風險或低風險套利結構」的盤口組合，通常表現為雙邊賠率加總 < 1 的區間，或 O/U、讓球盤之間出現中間值空間。套利團隊通常使用自動化工具（Bot）執行。", "letter": "A"}, {"id": 20, "en": "Arbitrage", "zh": "對刷", "desc": "對刷（也稱作刷水）是一種在博彩平台上的套利行為。它利用博彩平台之間的不同讓利優惠，透過在兩個或多個平台下注相反的結果，近似於零和博弈，透過平台給予的返利優惠獲利。", "letter": "A"}, {"id": 21, "en": "Arbitrage Betting", "zh": "打水", "desc": "打水指玩家利用不同平台之間賠率差異，進行對沖從而無風險套利。例：平台 A 主勝 2.10、平台 B 客勝 2.10，買雙邊 → 無論結果都賺錢。套利團隊通常使用自動化工具（Bot）執行。", "letter": "A"}, {"id": 22, "en": "Arbitrage Opportunity", "zh": "跨平台數學套利", "desc": "跨平台套利指在不同平台對同一事件給出互相矛盾的賠率時，透過同時下注相反結果，形成理論無風險或低風險利潤的機會。", "letter": "A"}, {"id": 23, "en": "Arbitrage Player", "zh": "搬磚玩家", "desc": "搬磚玩家是指利用不同平台之間賠率差異進行套利操作，透過在多個平台同時下注相反結果，從而鎖定無風險或低風險收益的玩家類型。", "letter": "A"}, {"id": 24, "en": "Arbitrage Range", "zh": "套利區間", "desc": "套利區間指在多個盤口組合下，能夠使所有可能結果都獲得非負收益的賠率區間。高級套利區間也可能出現在：大/小球不同盤口、讓球盤分盤、同一場比賽但不同類型投注之間。", "letter": "A"}, {"id": 25, "en": "Arbitrage Window", "zh": "套利窗口", "desc": "套利窗口（Arbitrage Window）指不同博彩公司在同一時間點出現賠率差異，可進行無風險套利的那段時間。", "letter": "A"}, {"id": 26, "en": "Asian Handicap", "zh": "讓球盤", "desc": "讓球盤（Asian Handicap）是「讓球貼水制」的俗稱，是澳門博彩公司在 1998 年法國世界盃之後推出的一種獨特的競猜模式。透過讓球來平衡雙方的實力差距，使得博彩更為公平和刺激。", "letter": "A"}, {"id": 27, "en": "Autoplay Restriction", "zh": "自動播放限制", "desc": "自動播放限制是監管機構要求禁止或限制老虎機自動旋轉功能，以防止過度賭博、玩家失去投注感知、連續爆發型快速下注。英國（UKGC）已全面禁用 Autoplay，安大略（iGaming Ontario）要求每次必須點擊確認。", "letter": "A"}, {"id": 28, "en": "Averaging", "zh": "補倉", "desc": "補倉指玩家在原有下注方向已經虧損的情況下，持續增加同方向投注金額以拉低整體平均成本的資金行為模式。補倉是損失厭惡心理的典型產物，本金需求呈指數級增長，單一方向風險持續疊加。", "letter": "A"}, {"id": 29, "en": "Baccarat", "zh": "百家樂", "desc": "百家樂（Baccarat）是一款受歡迎的賭博遊戲，歷史悠久且豐富。該遊戲在世界各地的賭場中都廣受歡迎。百家樂的起源尚有爭議，但有一些常見的理論認為它起源於 15 世紀的義大利。", "letter": "B"}, {"id": 30, "en": "Baccarat Roadmap", "zh": "路單系統", "desc": "路單系統（Baccarat Roadmap）又簡稱走勢圖，是百家樂中用於記錄莊閒勝負歷史與趨勢預測的可視化工具。源自澳門賭場體系，後廣泛應用於東南亞及線上平台。", "letter": "B"}, {"id": 31, "en": "Balanced Betting", "zh": "洗平", "desc": "洗平是指玩家在已發生浮盈或浮虧的情況下，透過反向下注、補倉或對沖操作，使最終盈虧接近於零，從而退出該場或該周期下注。", "letter": "B"}, {"id": 32, "en": "Balanced Line", "zh": "平衡盤", "desc": "平衡盤指盤口兩側資金流分布高度對稱、平台風險暴露接近中性的盤口狀態。風控不需調整，盤總處於理想區間。", "letter": "B"}, {"id": 33, "en": "Bankroll Management", "zh": "資金管理", "desc": "「資金管理」是指對投注資金進行合理分配與控制的策略，包括設定預算、控制投注比例及止盈止損等方式，以降低風險並提升資金使用效率。", "letter": "B"}, {"id": 34, "en": "Bead Road", "zh": "珠盤路", "desc": "珠盤路（Bead Plate，又稱 Bead Road）是百家樂中最基礎的路單記錄方式，以時間順序逐局顯示莊閒結果，每一格代表一局。通常以顏色或符號表示：🔴 紅色代表莊（Banker）🔵 藍色代表閒（Player）🟢 綠色代表和（Tie）", "letter": "B"}, {"id": 35, "en": "Bet Acceptance Rate", "zh": "接單率", "desc": "「接單率」是指在一定時間內成功被平台或系統接受的投注訂單占總提交訂單的比例。接單率越高，代表投注成功率與系統穩定性越好。", "letter": "B"}, {"id": 36, "en": "Bet Against", "zh": "反買", "desc": "反買指基於某些原因（如熱門過熱、莊家誘盤、毒奶），故意不跟大眾，而是押對立面。常見於熱門盤水位被壓得過低、明顯「過熱賽事」，或跟某些推薦者「反向跟單」的情況。", "letter": "B"}, {"id": 37, "en": "Bet Concentration", "zh": "投注集中度", "desc": "「投注集中度」是博彩與 iGaming 數據分析指標，指玩家投注金額集中在少數遊戲、號碼或選項上的程度。集中度過高可能增加平台風險，而分散投注有助於降低波動並提升整體穩定性。", "letter": "B"}, {"id": 38, "en": "Bet Copy Ratio", "zh": "跟單比例", "desc": "跟單比例是跟單交易中，用戶按照帶單帳戶投注規模進行同步執行的比例參數。該比例決定風險暴露與資金使用水平，是跟單策略的重要控制變量。", "letter": "B"}, {"id": 39, "en": "Bet Copying", "zh": "抄單", "desc": "「抄單」是博彩與 iGaming 術語，指玩家跟隨他人提供的投注方案或帶單內容進行相同投注操作。抄單通常依賴喊單或帶單資訊，但結果仍具有不確定性。", "letter": "B"}, {"id": 40, "en": "Bet Delay", "zh": "投注延遲", "desc": "「投注延遲」是指玩家提交投注後到系統確認生效之間的時間差。投注延遲可能由網路、系統處理或風控機制造成，過長的延遲可能影響投注體驗與結果判斷。", "letter": "B"}, {"id": 41, "en": "Bet Frequency", "zh": "投注頻率", "desc": "投注頻率是指用戶在一定時間內進行投注的次數，用於衡量用戶活躍程度及參與度。該指標能夠反映玩家的行為習慣，並幫助平台識別高活躍用戶或異常投注行為。", "letter": "B"}, {"id": 42, "en": "Bet Holding Time", "zh": "注單持倉時間", "desc": "注單持倉時間是指投注提交後至最終結算之間的時間區間。該指標常用於分析滾球投注風險及賠率變化影響，持倉時間越長，平台面臨的不確定性通常越高。", "letter": "B"}, {"id": 43, "en": "Bet Imbalance", "zh": "投注失衡", "desc": "「投注失衡」是指資金或投注量過度集中在某一結果或方向的情況。投注失衡可能增加平台風險，通常需要透過調水或限額等方式進行平衡。", "letter": "B"}, {"id": 44, "en": "Bet Rejection Rate", "zh": "拒單率", "desc": "拒單率是指用戶提交投注請求後被系統拒絕的比例，用於衡量平台風控強度與盤口穩定性。當賠率快速變動、賽事資訊更新或用戶觸發風控規則時，系統可能拒絕投注。", "letter": "B"}, {"id": 45, "en": "Bet Settlement Time", "zh": "結算時間", "desc": "結算時間是指從投注結果確定到資金完成結算並返還至帳戶的時間周期。在不同平台或不同玩法中，結算時間可能受到賽事確認、系統處理、風控審核或鏈上確認等因素影響。", "letter": "B"}, {"id": 46, "en": "Bet Slip", "zh": "投注單", "desc": "「投注單」是指玩家提交的一筆具體投注記錄，包含投注金額、玩法、賠率及結果等資訊。投注單用於記錄交易明細，並作為結算與數據分析依據。", "letter": "B"}, {"id": 47, "en": "Bet Slip Value", "zh": "注單價值", "desc": "注單價值是指單筆投注所帶來的潛在收益或風險評估指標，通常結合投注金額、賠率與用戶類型進行綜合分析。對於風控系統而言，注單價值可用於調整限額、觸發審核或進行盤口優化。", "letter": "B"}, {"id": 48, "en": "Bet Stuck", "zh": "卡單", "desc": "「卡單」是 iGaming 與支付流程術語，指用戶存款或提現訂單在處理過程中被延遲、審核或暫時凍結的情況。卡單通常由風控審核、支付通道問題或資訊異常引起。", "letter": "B"}, {"id": 49, "en": "Betting Limit", "zh": "限紅", "desc": "限紅（又稱單槍上限）是博彩業務中的一項重要風險控管措施。它指的是玩家在一次下注中所能下注的最高金額。這個限額通常由博彩公司或上級代理設置，目的是控制風險，避免因單次大額下注帶來的巨大波動和風險。", "letter": "B"}, {"id": 50, "en": "Betting Syndicate", "zh": "博彩團", "desc": "博彩團是由多人協同組成、以資訊、資金或策略聯合運作的投注組織。通常透過分工協作進行賠率研究、套利執行或資金布局。", "letter": "B"}, {"id": 51, "en": "Betting Turnover", "zh": "流水", "desc": "流水是指玩家下注的投注總額計量。在博彩術語中，玩家下注的行為可稱為「打水」、「流水」、「投注」、「打碼」或「洗碼」，計算玩家下注總額的計量詞則稱為「下注量」、「打水量」、「流水量」等。", "letter": "B"}, {"id": 52, "en": "Big Road", "zh": "大路", "desc": "大路（Big Road）是百家樂最具代表性的路單，用以展示莊閒連勝與換莊形態。它並非單純時間順序，而以「結果變化」為核心記錄方式。", "letter": "B"}, {"id": 53, "en": "Big Win Spike", "zh": "爆分", "desc": "爆分指老虎機或賭場遊戲中，短時間內出現遠超長期平均回報的異常高額中獎階段。爆分是 RNG 正常波動、觸發大獎區間、高倍率符號集中形成的統計「尖峰」。", "letter": "B"}, {"id": 54, "en": "Black Card", "zh": "黑卡", "desc": "「黑卡」是 iGaming 與風控術語，指被平台標記為高風險或異常行為的用戶帳戶。此類帳戶可能涉及套利、異常投注或違規操作，通常會受到限制、審核或封禁處理。", "letter": "B"}, {"id": 55, "en": "Black Swan Event", "zh": "黑天鵝", "desc": "黑天鵝指極低發生概率、但一旦發生將徹底破壞盤口風險模型與賽果預測結構的極端異常事件。在盤口系統中，黑天鵝屬於尾部風險（Tail Risk）範疇，概率極低、衝擊面極大、無法被常規模型充分覆蓋。", "letter": "B"}, {"id": 56, "en": "Blacklist", "zh": "黑名單", "desc": "「黑名單」是 iGaming 與風控管理術語，指被平台標記為高風險或違規的用戶、帳戶或 IP 名單。進入黑名單的對象通常會受到限制註冊、投注或提現等處理，用於防範異常行為與降低風險。", "letter": "B"}, {"id": 57, "en": "Blind Pick", "zh": "閉眼盤", "desc": "閉眼盤指完全不看分析、僅憑情緒或直覺下注的盤口選擇方式。屬於 Tilt / 情緒盤行為標籤，平台使用場景為 RG 風險標籤、成癮行為監測。", "letter": "B"}, {"id": 58, "en": "BMM Testlabs", "zh": "BMM 實驗室", "desc": "BMM Testlabs 是全球最早的博彩軟體測試機構之一，成立於 1981 年，總部位於澳大利亞。主要為博彩系統提供 RNG、公平性、數學模型、API 介面、安全性等認證。", "letter": "B"}, {"id": 59, "en": "Bonus Abuse", "zh": "卡紅利", "desc": "卡紅利是指以套利為目的，系統性利用平台促銷規則漏洞獲取無風險或低風險收益的欺詐行為模式。其核心特徵是：不是「玩得好」，而是「結構性薅平台規則」。", "letter": "B"}, {"id": 60, "en": "Bonus Buy", "zh": "購入獎金", "desc": "「Bonus Buy（購入獎金功能）」是近年來線上老虎機（Slot Game）中非常流行的一種機制，它允許玩家直接花錢購買進入免費遊戲（Free Spin）或獎金回合（Bonus Round）的機會，而不需要透過轉出特定符號（通常是 Scatter）來觸發。", "letter": "B"}, {"id": 61, "en": "Bonus Conversion Rate", "zh": "獎金轉化率", "desc": "獎金轉化率（Bonus Conversion Rate）指玩家領取的獎金最終成功轉換成可提款餘額的比例，是衡量獎勵成本與收益的核心指標。影響因素：流水要求、參與遊戲的 RTP、玩家類型（套利 vs 娛樂）、活動規則複雜度、風控對 Bonus 的標籤。", "letter": "B"}, {"id": 62, "en": "Bonus Cost", "zh": "紅利成本", "desc": "紅利成本是指平台因發放獎金、返水或優惠活動所產生的實際支出成本。該指標用於評估行銷活動的投入產出比，並幫助平台優化活動策略。", "letter": "B"}, {"id": 63, "en": "Bonus Forfeiture", "zh": "紅利沒收", "desc": "紅利沒收（Bonus Forfeiture）是指玩家在紅利使用過程中，由於違反條件、提前提款、或未完成流水要求而失去紅利資格的情況。此時，紅利及其衍生盈利將被系統扣除，僅保留原始本金。", "letter": "B"}, {"id": 64, "en": "Bonus Hunter", "zh": "羊毛黨", "desc": "羊毛黨指以系統性套利為目的，批量利用平台促銷規則、返現與紅利結構牟利的專業化玩家群體。其核心目標不是娛樂，而是「促銷差價套利」。", "letter": "B"}, {"id": 65, "en": "Bonus Lock", "zh": "鎖紅利", "desc": "「鎖紅利」是博彩與 iGaming 促銷規則術語，指玩家獲得優惠獎金後需完成指定打碼量前，紅利資金被限制提現的狀態。鎖紅利期間通常只能用於投注，完成條件後方可解鎖並申請提款。", "letter": "B"}, {"id": 66, "en": "Bonus Terms & Conditions", "zh": "紅利條款", "desc": "紅利條款（Bonus Terms & Conditions）是線上賭場為規範玩家領取與使用紅利所設定的法律與操作性規則。此類條款明確說明紅利的適用範圍、流水要求、遊戲限制、有效期限、提現規則等內容。", "letter": "B"}, {"id": 67, "en": "Bonus Validity", "zh": "紅利有效期", "desc": "紅利有效期（Bonus Validity）是賭場設定的紅利使用時限。玩家需在該期限內完成投注或流水要求，否則紅利與其派生盈利會自動作廢。", "letter": "B"}, {"id": 68, "en": "Book Total", "zh": "盤總", "desc": "盤總指某一場賽事、某一盤口在當前時點下，平台的「總風險暴露量」與「潛在盈虧分布結構」。也就是：如果比賽現在結束，平台在這場盤「最多可能輸多少錢 / 贏多少錢」。", "letter": "B"}, {"id": 69, "en": "Bot Traffic", "zh": "機器量", "desc": "「機器量」是 iGaming 與流量推廣術語，指透過自動化程式或批量工具生成的註冊、登入或投注數據。這類流量通常缺乏真實用戶行為，轉化率與留存較低，並可能觸發平台風控機制。", "letter": "B"}, {"id": 70, "en": "Bot-Farm", "zh": "機器人農場", "desc": "機器人農場（Bot-Farm）由大量自動腳本（Bots）構成的「下注機器人集群」，以套利、Bonus abuse 或搶占賠率為目的。Bot-Farm 常具備代理伺服器（Proxy）、自動下單引擎、賠率掃描工具、多帳號管理等功能。", "letter": "B"}, {"id": 71, "en": "Bounce-back Spot", "zh": "反彈盤", "desc": "反彈盤指一支球隊經歷連續失利後，在市場低估狀態下出現的潛在反彈機會盤口。數據被過度悲觀化、盤口被壓淺、賠率上調形成價值區間。", "letter": "B"}, {"id": 72, "en": "Buyback Line", "zh": "回補盤", "desc": "回補盤指盤口在大幅變盤後，風控透過反向調節引導對沖資金回流形成的二次風險平衡結構。技術機制：調高水位、調整盤口、吸引對沖。", "letter": "B"}, {"id": 73, "en": "Capital Pool", "zh": "資金池", "desc": "資金池（Capital Pool）是指集中管理和調度大量資金的帳戶或系統結構，用於支持支付結算、下注賠付、流動性管理或資金周轉。在博彩平台、支付系統及灰產結構中，資金池都是核心運作基礎。", "letter": "C"}, {"id": 74, "en": "Capital Reflow Point", "zh": "資金回流點", "desc": "資金回流點指在賠率調整後，原本流出的資金重新進入某一盤口區間的位置，通常意味著市場重新認可該價格。", "letter": "C"}, {"id": 75, "en": "Capital Stampede", "zh": "資金踩踏", "desc": "資金踩踏指大量資金在極短時間內，因同一信號或情緒驅動而集中湧入或撤離某一盤口，導致價格急劇失真。典型後果：賠率劇烈波動、真空區與斷層出現、大量拒單、限額。", "letter": "C"}, {"id": 76, "en": "Capital Utilization", "zh": "資金利用率", "desc": "資金利用率是指帳戶可用資金中被實際用於投注或交易的比例，用於衡量資金的使用效率與活躍程度。平台也可利用該指標評估玩家行為模式，並調整運營或風控策略。", "letter": "C"}, {"id": 77, "en": "Card Blocking", "zh": "封卡", "desc": "「封卡」是 iGaming 與風控術語，指平台對用戶帳戶進行限制或凍結處理，通常由於異常行為、違規操作或高風險判定觸發。封卡後帳戶可能無法登入、投注或提現。", "letter": "C"}, {"id": 78, "en": "Card Freeze", "zh": "凍卡", "desc": "凍卡（Card Freeze）是指銀行或支付機構因風險或監管原因，對帳戶資金進行凍結的行為，在博彩與灰產資金流中極為常見。", "letter": "C"}, {"id": 79, "en": "Card Supplier", "zh": "卡商", "desc": "卡商是指擁有大量銀行卡資源的中間商。這些銀行卡通常不是卡商本人的，而是透過各種手段（如購買、租借、誘騙）從普通人（俗稱「人頭」）手中獲取的。", "letter": "C"}, {"id": 80, "en": "Cash and Credit Betting", "zh": "信用版和現金版", "desc": "「信用版」和「現金版」又稱現金網、信用網、信用模式、現金模式，是在線上博彩平台及娛樂城中常見的兩種型態的運營模式。這兩種型態具有不同的特點和優缺點，可能影響到玩家的遊戲體驗、平台信任、金錢利益等。", "letter": "C"}, {"id": 81, "en": "Cash Out / Quit", "zh": "下車", "desc": "「下車」指玩家在比賽尚未結束時提前結算注單，鎖定當前盈利或止損，避免後續風險。Cash Out 金額由當前賠率、比賽走勢、剩餘時間、風控評估、平台抽傭共同決定。", "letter": "C"}, {"id": 82, "en": "Cashable Bonus", "zh": "可提現紅利", "desc": "可提現紅利（Cashable Bonus）是最直接、最受玩家歡迎的一種紅利類型。當玩家完成賭場規定的投注流水要求（Wagering Requirement）後，紅利金額會自動轉化為可提現資金，與本金和盈利合併後可自由提款。", "letter": "C"}, {"id": 83, "en": "Cashback", "zh": "返水", "desc": "返水（Cashback）是線上博彩平台常見優惠活動，根據玩家在平台上的有效投注金額，依照一定比例返還一部分金額給玩家。有點像信用卡的紅利回饋，刷越多贈點領越多。", "letter": "C"}, {"id": 84, "en": "Cashback Promotion", "zh": "返水優惠", "desc": "「返水優惠」是博彩與 iGaming 平台常見促銷活動，指根據玩家的投注額按一定比例返還獎金的獎勵機制。返水通常按有效投注計算，無論輸贏均可獲得，用於提升玩家活躍度與留存率。", "letter": "C"}, {"id": 85, "en": "Casino Junket Agent", "zh": "碼仔", "desc": "碼仔（也叫「跑碼佬」、「馬仔」、「拉客仔」），是賭場生態鏈中負責拉賭客進場、帶人去賭、賺取返點佣金的一類「業務員」。", "letter": "C"}, {"id": 86, "en": "Casino Junket Representative", "zh": "賭場代理", "desc": "賭場代理（Casino Junket Representative）是指專門為高額投注玩家（通常被稱為「鯨魚」）提供一站式服務的第三方機構或個人。他們不靠賭，而是靠「帶有錢人去賭」來賺錢，是開公司帶客去賭場賭的，玩的是批發和抽傭生意。", "letter": "C"}, {"id": 87, "en": "Catching the Line", "zh": "接盤", "desc": "接盤是指玩家在盤口已經明顯變差、水位或讓球已不利的情況下進場下注，往往承接的是前一波資金已經推高風險後的「殘余盤口」。後進場玩家只能拿到「被修正過的盤口」，實際期望值明顯下降。", "letter": "C"}, {"id": 88, "en": "CDD", "zh": "客戶盡調", "desc": "CDD 是對所有客戶進行的基礎風險識別與身份核驗流程，是 AML 的第一層防線。技術機制：KYC 驗證、地址 / IP / 設備 / 支付工具關聯、初始風險分級。", "letter": "C"}, {"id": 89, "en": "Central Wallet", "zh": "中心錢包", "desc": "中心錢包是玩家在平台內的核心帳戶餘額，用於集中存取款、發放紅利及結算活動。它通常是與後台「帳戶表」綁定的一級資金中心，統一顯示餘額，承擔入金/出金，分配到子錢包（Game Wallet）或免轉系統（Seamless Wallet）。", "letter": "C"}, {"id": 90, "en": "CFT", "zh": "反恐融資", "desc": "CFT（反恐融資）是指防止平台和金融體系被用於資助恐怖主義或恐怖組織活動的監管要求。在線博彩平台因涉及大量現金流加跨境金流，因此 AML/CFT 是最嚴格的監管核心之一。", "letter": "C"}, {"id": 91, "en": "Chasing Bet", "zh": "追單", "desc": "追單指玩家在虧損後，為了「追回輸掉的金額」，不斷增加投注金額或頻繁下注的行為。這是一種經典負面行為，與 Tilt（情緒失控）高度相關，是博彩風控的高風險標籤（Risk Tag）。", "letter": "C"}, {"id": 92, "en": "Chasing Losses", "zh": "連續追損", "desc": "連續追損（Chasing Losses）指玩家在輸錢後，為了「追回損失」而不斷提高下注金額或頻率的行為，屬於高風險賭博行為，是「問題賭博（Problem Gambling）」的典型信號之一。", "letter": "C"}, {"id": 93, "en": "Chip Dumping", "zh": "送分", "desc": "送分（Chip Dumping）指玩家故意輸給指定目標，使籌碼從一個帳戶轉移到另一個帳戶。常見手法：撲克桌「假打」、電競賽事送分、代理組織用於「洗玩家返水」、套利組織用於資金轉移。", "letter": "C"}, {"id": 94, "en": "Cloaking", "zh": "斗篷技術", "desc": "斗篷技術（Cloaking）是指向廣告審核系統與真實用戶展示不同頁面內容的技術手段，常用於繞過廣告平台對博彩等敏感行業的審核限制。", "letter": "C"}, {"id": 95, "en": "Cloaking Page", "zh": "黑頁", "desc": "黑頁（Cloaking Page）是指用於真實用戶訪問的違規頁面，通常包含博彩、灰產或高轉化內容，是斗篷系統中的核心落地頁。", "letter": "C"}, {"id": 96, "en": "Close Market", "zh": "封盤", "desc": "封盤指某一投注市場被永久關閉，不再接受任何投注。常見於比賽已開始（賽前盤封盤）、比賽結束（滾球盤全部封盤）、特定事件已確定無法發生。封盤與鎖盤不同：鎖盤 = 暫停可能再開，封盤 = 徹底關閉不再重開。", "letter": "C"}, {"id": 97, "en": "Closing Line Value (CLV)", "zh": "終盤價值", "desc": "終盤價值（CLV）是指玩家下注時獲得賠率與最終市場收盤賠率之間的價值差異，用於衡量下注價格是否優於市場最終價格。長期獲得正 CLV，通常代表投注決策具備市場優勢。", "letter": "C"}, {"id": 98, "en": "CLV", "zh": "終盤價值", "desc": "終盤價值（CLV）是評估玩家是否「擊敗市場」的最重要指標：若下注時的賠率優於最終關閉時的賠率 → 則代表玩家擁有正期望（+EV）能力。", "letter": "C"}, {"id": 99, "en": "Cockroach Road", "zh": "蟑螂路", "desc": "「蟑螂路」是百家樂路單中的一種派生路，用於輔助判斷莊閒走勢是否規律。透過對大路數據的延伸計算，以紅藍點顯示走勢整齊度，幫助玩家分析趨勢變化並作為下注參考。", "letter": "C"}, {"id": 100, "en": "Cold Traffic", "zh": "冷流量", "desc": "冷流量（Cold Traffic）是指尚未接觸過平台或品牌、缺乏信任基礎的初始用戶流量，通常來源於廣告投放或陌生渠道。冷流量轉化率低但規模最大，是博彩平台獲取新用戶的入口流量。", "letter": "C"}, {"id": 101, "en": "Comeback Win", "zh": "反殺", "desc": "反殺指在比賽或投注中，原本處於落後或被動的隊伍/方向，在後期突然扭轉局勢並贏下比賽，對投注者來說常是「極爽」或「極痛」的經歷。在投注層面，喜歡賭逆風盤的玩家常以「博反殺」為主軸。", "letter": "C"}, {"id": 102, "en": "Commission Rebate", "zh": "返傭", "desc": "「返傭」是 iGaming 與代理推廣常見術語，指平台根據代理或推廣方帶來的有效投注或收益，按一定比例返還佣金的獎勵機制。返傭通常與業績表現掛鉤，用於激勵推廣與提升流量質量。", "letter": "C"}, {"id": 103, "en": "Community Trust", "zh": "社群信任", "desc": "社群信任是指用戶在社群環境中對平台、管理者或其他成員所建立的信任程度。在博彩場景中，社群信任會直接影響用戶是否跟單、參與活動或進行充值決策，因此常被視為推動轉化與留存的重要因素。", "letter": "C"}, {"id": 104, "en": "Contra Bet", "zh": "反著買", "desc": "反著買 = 明知某方向強，但刻意賭「反方向」。通常基於熱門陷阱、莊家誘盤、「玄學」心理。反買本質是對「市場過熱」進行博弈。", "letter": "C"}, {"id": 105, "en": "Conversion Rate Optimization", "zh": "轉化率優化", "desc": "轉化率優化（CRO）是指系統性分析並改善用戶在平台上的行動轉化效率的方法論，在博彩推廣中常指從點擊 → 註冊 → 首存的漏斗優化。聯盟推廣（Affiliate）是一種基於績效的行銷模式，企業透過與推廣者合作，讓其推廣產品或服務，並根據實際帶來的效果支付佣金。", "letter": "C"}, {"id": 106, "en": "Copy Betting Leader", "zh": "帶單老師", "desc": "帶單老師是指透過發布即時或預先設定的投注指令，帶領用戶進行跟單操作的人或角色。在博彩場景中，這類角色常與分傭、推廣或流量轉化綁定，其策略可能基於經驗、數據分析或行銷目的，實際表現具有不確定性。", "letter": "C"}, {"id": 107, "en": "Copy Trading", "zh": "跟單交易", "desc": "跟單交易是指用戶複製其他交易者或投注者的操作策略，並按相同比例或規則自動執行的參與模式。用戶可選擇跟隨特定帶單者、策略帳戶或專業玩家，使其下注或交易動作同步複製到自身帳戶。", "letter": "C"}, {"id": 108, "en": "Corners Bet", "zh": "角球盤", "desc": "角球盤以雙方角球總數作為判斷依據，類似大小盤玩法。角球數強烈受控於：攻守戰術、邊路進攻比率、比賽節奏、比分狀態（領先方常控球減少角球）。", "letter": "C"}, {"id": 109, "en": "Correct Score", "zh": "波膽", "desc": "波膽（Correct Score）預測即為預測一場比賽的精確比分。若在比賽開始前預測比分為 2:1，而比賽結束後的實際比分也是 2:1，則可以獲得高額賠率。這種投注方式雖然賠率非常高，但成功率卻非常低。", "letter": "C"}, {"id": 110, "en": "Cover Draw", "zh": "擋平", "desc": "擋平指玩家在已下注主勝或客勝的前提下，再下注「平局」，以便在比賽打平時不至於全輸。", "letter": "C"}, {"id": 111, "en": "Credential Stuffing", "zh": "撞庫", "desc": "撞庫指利用洩露的帳號密碼庫進行自動化批量登入攻擊的行為。使用 botnet、模擬瀏覽器、多 IP 輪詢、自動驗證存款錢包。屬於刑事犯罪。", "letter": "C"}, {"id": 112, "en": "Cross-Chain Loyalty", "zh": "跨鏈積分", "desc": "跨鏈積分（Cross-Chain Loyalty）是指在 Web3 與 iGaming 生態中，讓玩家的忠誠積分（Loyalty Points）可在不同區塊鏈或合作平台之間自由轉移、兌換或共享的機制。", "letter": "C"}, {"id": 113, "en": "CRUKS", "zh": "荷蘭賭博自我排除系統", "desc": "CRUKS 是荷蘭全國性賭博自我排除系統。只要玩家被登記至 CRUKS，所有持牌線上賭場、實體賭場、街機廳等必須強制拒絕其登入與投注。CRUKS 是荷蘭責任博彩體系的核心組成部分，在 KOA（遠端博彩法）生效後成為法律強制要求。", "letter": "C"}, {"id": 114, "en": "Crypto iGaming", "zh": "加密貨幣博彩", "desc": "加密貨幣博彩（Crypto iGaming）指的是在 iGaming 平台中引入加密貨幣作為主要支付、存取款或獎池流通方式的一種運營模式。它結合了區塊鏈的「去中心化、不可篡改」特性，為玩家提供更高匿名性、更快交易速度與更低手續費。", "letter": "C"}, {"id": 115, "en": "Dead Market", "zh": "死盤", "desc": "死盤指因風險、技術或監管原因，已完全停止接受任何投注的盤口狀態。死盤通常伴隨：注單拒絕、盤口鎖死、數據源斷開、風控凍結。", "letter": "D"}, {"id": 116, "en": "Deposit Frequency", "zh": "存款頻率", "desc": "「存款頻率」是 iGaming 與用戶運營常用指標，指用戶在一定時間內進行充值的次數。存款頻率越高，通常代表用戶付費意願與活躍度較強，平台可據此評估用戶價值並優化行銷與留存策略。", "letter": "D"}, {"id": 117, "en": "Device FP", "zh": "設備指紋", "desc": "設備指紋（Device FP）透過瀏覽器/硬體/系統參數生成唯一設備畫像，用於識別多號、代打、黑產設備池。技術機制：Canvas/WebGL/字體/時區/硬體特徵、指紋相似度聚類、設備重合告警。", "letter": "D"}, {"id": 118, "en": "DGA", "zh": "丹麥博彩管理局", "desc": "DGA（丹麥博彩管理局）是丹麥政府的中央博彩監管機關，負責監督國家所有博彩活動，包括線上博彩（iGaming）、體育投注、彩票、實體賭場、機器博彩。丹麥監管框架透明、嚴謹，被譽為「北歐版 UKGC」。", "letter": "D"}, {"id": 119, "en": "DGOJ", "zh": "西班牙博彩管制局", "desc": "DGOJ 是西班牙政府的國家級線上博彩監管機構，負責發放線上博彩牌照、審核系統安全與 RNG、KYC / AML / RG、監管廣告與行銷、打擊非法博彩網站。西班牙是歐洲線上博彩開放最早的國家之一。", "letter": "D"}, {"id": 120, "en": "Display of Probability Rules", "zh": "顯示勝率規則", "desc": "監管機構要求遊戲必須清楚展示：玩家贏得特定獎金的概率、特殊事件的觸發幾率、獎池或倍數的概率區間、RTP 與波動率資訊。例如安大略（Ontario）規定必須展示 Bonus 的觸發幾率。", "letter": "D"}, {"id": 121, "en": "Double Down", "zh": "衝倍", "desc": "衝倍即將注額加倍以提高勝利收益。原始來源是 21 點，但體育博彩玩家常用來形容「大幅提高投注金額」的動作。衝倍常見情況：對盤口極有信心、前一單贏 → 急於擴大收益、前一單輸 → 想一次追回、錯誤理解「賠率價值」。衝倍風險高，因為投注基數成倍增加。", "letter": "D"}, {"id": 122, "en": "Double Up", "zh": "翻倍", "desc": "「翻倍（Double Up）」是博彩與 iGaming 常見玩法與策略術語，指在獲勝後或特定條件下將投注金額加倍，以追求更高收益。翻倍操作風險較高，通常用於短期衝刺或進階投注策略。", "letter": "D"}, {"id": 123, "en": "Downline", "zh": "下線", "desc": "「下線」是 iGaming 與代理體系術語，指隸屬於某代理或上級推廣方的用戶或子代理。下線通常由上級進行管理，其投注或業績可計入上級統計，用於計算返傭或績效。", "letter": "D"}, {"id": 124, "en": "Dual-Side Betting", "zh": "騎牆", "desc": "騎牆指玩家同時下注雙方（如主 + 客），用來降低虧損概率、博取中間值、製造套利結構。與打水不同的是：騎牆可能仍會虧錢（非真正套利）。騎牆常發生於盤口波動大、玩家不確定方向、想「搏中間」套利的情況。", "letter": "D"}, {"id": 125, "en": "Dutching", "zh": "多重投注套利", "desc": "Dutching 是一種透過在同一市場內，對多個結果按比例下注，使得任一結果發生時，理論回報相同的投注策略。", "letter": "D"}, {"id": 126, "en": "Dynamic Odds", "zh": "動態賠率", "desc": "動態賠率是指根據賽事進展、投注資金流向與市場資訊實時變化的賠率機制。該系統透過自動演算法持續調整盤口，以反映最新比賽情況並平衡投注分布。", "letter": "D"}, {"id": 127, "en": "Early Cashout", "zh": "提前兌現", "desc": "「提前兌現」是指在賽事或投注結果尚未最終確定前，平台允許玩家以當前結算金額提前結束投注並領取資金的功能。提前兌現用於鎖定收益或減少潛在虧損。", "letter": "E"}, {"id": 128, "en": "eCOGRA", "zh": "英國 iGaming 公平性與安全性測試機構", "desc": "eCOGRA 是專注於線上博彩（iGaming）領域的獨立測試與認證機構。該組織的宗旨是保障玩家權益、驗證 RNG（隨機數生成器）公平性、並確保賭場的資金安全與負責任博彩政策執行。", "letter": "E"}, {"id": 129, "en": "EDD", "zh": "加強型盡職調查", "desc": "EDD 是針對被識別為高洗錢、高欺詐、高腐敗風險的客戶或交易主體，在基礎 CDD 之上實施的深度調查、持續監控與行為審計機制。其本質是：把「可能危害平台合規安全的人」從普通客戶流程中分離出來進行獨立監管。", "letter": "E"}, {"id": 130, "en": "Edge", "zh": "優勢值", "desc": "優勢值是指玩家預測能力、資訊優勢或賠率判斷，相對於市場平均水平所擁有的正期望收益空間。在博彩行業中，Edge 被視為長期盈利核心來源，職業玩家通常圍繞尋找 Edge 構建整個策略體系。", "letter": "E"}, {"id": 131, "en": "Effective Betting Turnover", "zh": "有效流水", "desc": "有效流水是線上博彩平台中提款所需的條件，常以「有效下注」、「有效投注」、「有效打水」、「有效流水」、「有效洗碼」、「有效打碼」作為提款門檻。無論在投注中輸贏多少，都會計入為有效流水量。", "letter": "E"}, {"id": 132, "en": "EGBA", "zh": "歐洲博彩與投注協會", "desc": "歐洲博彩與投注協會（EGBA）是一家總部設在比利時布魯塞爾的行業貿易協會，代表在歐洲經濟區內合法設立並受監管的線上博彩運營商。", "letter": "E"}, {"id": 133, "en": "Emotional Bet", "zh": "情緒盤", "desc": "情緒盤指玩家不基於理性分析，而是因憤怒、興奮、賭氣、報復心理等情緒做出的博彩決定。常見情緒盤特徵：連續輸錢後立刻加大注碼（Tilt）、因為被「毒奶」或「黑哨」氣到亂押、夜深人靜酒後下注。情緒盤往往伴隨追單、衝倍、亂串關等行為。", "letter": "E"}, {"id": 134, "en": "Emotional Premium", "zh": "情緒溢價", "desc": "情緒溢價指盤口因市場情緒過熱而出現的非理性賠率偏差。盤口拉鋸指多空雙方資金在同一盤口區間內反復博弈，導致賠率頻繁上下微調但始終無法突破關鍵區間。", "letter": "E"}, {"id": 135, "en": "eSports Betting", "zh": "電子競技博彩", "desc": "電子競技博彩（eSports Betting）是 iGaming 的新興分支，玩家可對真實電競賽事（如 Dota 2、CS2、LoL、Valorant）或虛擬電競比賽進行投注。此類博彩結合了遊戲競技數據、AI 預測模型與即時賠率演算。", "letter": "E"}, {"id": 136, "en": "European Odds", "zh": "歐洲盤", "desc": "歐洲盤（Decimal Odds 或 European Odds）是一種在全球範圍內廣泛使用的體育博彩賠率格式，尤其在歐洲、澳洲、加拿大以及亞洲大部分博彩平台中最為常見。又被稱為「小數盤」，所顯示的數值即為「總返還金額 ÷ 投注金額」，包含本金。", "letter": "E"}, {"id": 137, "en": "Event Contract", "zh": "事件合約", "desc": "事件合約是指以某一特定事件結果為結算依據的合約形式，用戶透過選擇不同結果方向進行參與，並在事件結束後根據實際結果獲得收益或承擔損失。在部分場景中，事件合約也可結合區塊鏈技術，實現透明結算與結果驗證。", "letter": "E"}, {"id": 138, "en": "Excluded Wager", "zh": "流水不計", "desc": "流水不計是指某些投注金額不會被計算進紅利流水、返水流水或 VIP 流水的有效投注統計中。換言之，這些下注「對紅利沒有幫助」。", "letter": "E"}, {"id": 139, "en": "Expected Value", "zh": "期望值", "desc": "期望值（Expected Value, EV）是一個統計學中的概念，用來衡量某事件在長期多次重複的情況下，平均能帶來的收益或損失。在百家樂中，期望值用於評估不同投注選項的「平均回報」，從而幫助玩家選擇更有利的下注策略。", "letter": "E"}, {"id": 140, "en": "Exposure Limit", "zh": "風險限額", "desc": "風險限額是指平台為控制潛在虧損而設定的最大風險敞口閾值。當某一賽事或盤口投注金額達到設定範圍時，系統會自動限制投注或調整賠率。該機制用於防止單邊投注造成過度資金暴露，並維持平台收益穩定。", "letter": "E"}, {"id": 141, "en": "Fair Play", "zh": "公平博彩", "desc": "公平博彩確保所有遊戲結果由可驗證的隨機演算法（RNG）產生，並經第三方獨立機構測試與認證。核心要素包括：RNG 隨機數生成器、公開 RTP（返還率，通常 90-98%）、第三方認證（如 eCOGRA、GLI、iTech Labs）、日誌追蹤（保存投注與結果記錄以供監管複查）。", "letter": "F"}, {"id": 142, "en": "Fake Drop", "zh": "假跳水", "desc": "假跳水指賠率短暫下跌後，迅速被拉回或反向修正，並未形成真實的市場共識。形成原因：小額資金集中、系統測試性調整、流動性不足。", "letter": "F"}, {"id": 143, "en": "Fake Volume", "zh": "假量", "desc": "「假量」是 iGaming 與流量推廣術語，指非真實用戶產生的註冊、點擊或投注數據，通常由機器量、重複帳號或異常操作構成。假量難以轉化為真實收益，並可能影響平台數據與風控判斷。", "letter": "F"}, {"id": 144, "en": "False Signal", "zh": "假信號", "desc": "假信號指盤口變化、賠率波動或資金異動看似指向某一方向，但最終未能持續或被迅速修正的現象。常見來源：小額情緒資金集中、短時噪音、人工盤口測試。", "letter": "F"}, {"id": 145, "en": "Favourite / Underdog", "zh": "上盤/下盤", "desc": "上盤 = 讓球的一方（被認為較強），下盤 = 受讓的一方（被認為較弱），上盤通常賠率低，下盤賠率較高。博彩公司會根據雙方實力差距給出讓球盤，如：上盤讓半球、讓一球、讓平半；下盤受讓半球、受讓一球。", "letter": "F"}, {"id": 146, "en": "First Deposit", "zh": "首存", "desc": "首存指玩家首次向平台進行的入金行為，通常與首存紅利、首存返水等促銷機制綁定。行業意義：用於計算獲客成本、判斷用戶轉化質量，風控系統會特別標記首存期行為。", "letter": "F"}, {"id": 147, "en": "First Deposit Bonus", "zh": "首存紅利", "desc": "「首存紅利」是 iGaming 常見促銷活動，指玩家首次存款後獲得的額外獎勵資金。該紅利通常附帶打碼量要求，用於提升新用戶轉化與首次付費率。", "letter": "F"}, {"id": 148, "en": "First Deposit Farming", "zh": "刷首存", "desc": "刷首存指透過批量註冊新帳號，循環獲取首存優惠並快速套利提現的規模化欺詐行為，是賭場優惠系統最常見的系統性攻擊方式之一。", "letter": "F"}, {"id": 149, "en": "Follow Bet", "zh": "跟單", "desc": "跟單指玩家根據他人推薦下注，包括：群組帶單、網紅推薦、KOL 預測、專業 Tipster。跟單機制常由社群（Telegram、Discord）、付費訂閱 Prediction、推薦傭金（Affiliate）推動。", "letter": "F"}, {"id": 150, "en": "Follower Bettor", "zh": "跟單狗", "desc": "跟單狗是指缺乏獨立判斷能力、長期依賴他人推薦進行下注或交易的玩家群體。其核心特徵是跟隨「老師」、群主、KOL 或社群信號進行操作，而非自行分析盤口、賠率或事件概率。跟單狗是帶單產業、喊單社群和博彩轉化鏈路中的核心用戶群體之一。", "letter": "F"}, {"id": 151, "en": "Fourth-party Payment", "zh": "四方支付", "desc": "四方支付（Fourth-party Payment）是指在三方支付之上再次聚合通道資源的中介系統，通常不直接持有支付牌照，而是整合多個三方通道，為高風險行業提供更隱蔽和靈活的資金流路徑。", "letter": "F"}, {"id": 152, "en": "Fraud Detection", "zh": "欺詐偵測", "desc": "欺詐偵測（Fraud Detection）是在線博彩平台用於識別、阻擋並分析非法或異常行為的核心風控機制。系統通常結合數據分析、行為建模、設備指紋、IP 分析、交易監控、AI 模型等技術。", "letter": "F"}, {"id": 153, "en": "Fraud Ring Detection", "zh": "團伙欺詐檢測", "desc": "團伙欺詐檢測（Fraud Ring Detection）偵測透過多人合作、共享資訊、共同操控賠率或下注結構的團體型違規行為。典型特徵：多帳號共享同一設備/網路、注單結構高度一致、共同攻擊賠率漏洞、同一時間段下注、有共同代理或上層組織。", "letter": "F"}, {"id": 154, "en": "Free Spin", "zh": "免費轉", "desc": "在大多數線上老虎機遊戲裡，Free Spin 意思是免費旋轉，不用花費額外籌碼就能獲得一定次數的免費轉動。通常觸發 Free Spin 的方式是轉出指定數量的「Scatter 符號」，例如同時出現 3 個或以上 Scatter 符號就能進入 Free Spin 模式。", "letter": "F"}, {"id": 155, "en": "Fund Cycling", "zh": "過水", "desc": "過水（Fund Cycling）是指透過反復下注、對沖或轉移資金，使資金在平台內形成交易記錄，從而達到刷流水、掩蓋資金來源或滿足提現條件的行為，是洗錢和套利常見手段之一。", "letter": "F"}, {"id": 156, "en": "Gambler's Fallacy", "zh": "賭徒謬誤", "desc": "賭徒謬誤（Gambler's Fallacy），又稱蒙特卡洛謬誤，是指人們誤以為在隨機事件中，如果某一結果長時間未出現，其出現的概率會「補償性地」增加；或者某結果連續出現，其下一次發生的概率會降低。這是一種常見的邏輯謬誤，特別容易出現在賭博、彩票、金融投資等場景中。", "letter": "G"}, {"id": 157, "en": "Gambling Agent", "zh": "代理", "desc": "線上博弈代理（Gambling Agent）在現代網路博彩行業中擔任重要角色。博弈代理除了招攬玩家之外，很大部分也幫助玩家學習如何參與博彩遊戲、協助下注、提供專業建議、監測遊戲進程、管理資金、資金借貸等。博弈代理粗分為「現金版代理」和「信用版代理」兩大類。", "letter": "G"}, {"id": 158, "en": "Gambling Industry Exhibition", "zh": "博彩展會", "desc": "博彩展會是指以博彩產業（iGaming industry）為核心，涵蓋平台技術、支付解決方案、遊戲內容、系統服務、法律顧問、市場行銷等上下游產業鏈的專業展覽活動。博彩展會是博彩遊戲廠商發布新品、洽談合作的重要平台，也是觀察全球博彩市場趨勢與監管動態的重要窗口。", "letter": "G"}, {"id": 159, "en": "Gambling License", "zh": "博彩牌照", "desc": "博彩牌照是由各國或地區的政府監管機構簽發的合法經營許可證，授權企業從事博彩相關業務，包括體育投注、真人娛樂、彩票、老虎機、撲克等。對平台來說，擁有合法牌照是合規運營的前提；對玩家來說，牌照是判斷平台是否安全、可信、公平的重要依據。", "letter": "G"}, {"id": 160, "en": "Gambling Regulation", "zh": "博彩監管", "desc": "博彩監管（Gambling Regulation）是各國政府或授權機構為確保博彩業務活動的合法、安全、負責任而建立的法律及行政框架。博彩監管機構（Gambling Regulatory Authority）由國家或地區政府設立，負責頒發牌照、制定規則並監督合規，扮演保護玩家、防範犯罪、確保市場秩序三重角色。", "letter": "G"}, {"id": 161, "en": "Game Certification", "zh": "遊戲認證", "desc": "Game Certification（遊戲認證）是由獨立第三方實驗室（如 GLI、BMM Testlabs、iTech Labs）對遊戲進行的公平性、安全性、合規性檢測，並出具正式的認證報告（Certificate）。", "letter": "G"}, {"id": 162, "en": "Game Fairness Verification", "zh": "遊戲公平性證明機制", "desc": "遊戲公平性證明機制是指對線上博彩遊戲進行獨立檢測與認證的標準化流程，目的是驗證遊戲運行是否符合「不可預測、不可操控、結果公正」的原則。沒有經過公平性認證的博彩遊戲，是無法在國際正規博彩市場生存的。", "letter": "G"}, {"id": 163, "en": "Game Round Consistency", "zh": "多回合一致性", "desc": "多回合一致性指遊戲在連續回合中：RNG 輸出保持獨立、不受玩家下注金額干擾、不因輸贏結果影響下一局、不存在「補償局」或「預設贏錢局」。這是 GLI-11/GLI-19 標準中最重要的公平性要求之一。", "letter": "G"}, {"id": 164, "en": "Game Wallet", "zh": "遊戲錢包", "desc": "遊戲錢包是平台架構中為每個遊戲供應商（Provider）設立的獨立帳戶子餘額。玩家需將主錢包資金轉入對應遊戲錢包後才能投注，遊戲結束後可再轉回主錢包。", "letter": "G"}, {"id": 165, "en": "Gaming Promoter", "zh": "狗推", "desc": "狗推是玩家圈對以強行銷、強話術、低專業度為特徵的博彩推廣者的貶義稱呼。這類推廣者通常不依賴專業判斷或長期模型，而是透過製造情緒、承諾收益或誇大成功率來引導下注或拉人註冊。", "letter": "G"}, {"id": 166, "en": "GEO", "zh": "合規地區偵測", "desc": "GEO 是博彩平台用於檢測玩家的實際地理位置，以滿足不同國家或州的博彩法規要求。用於確保玩家不在「禁止博彩的地區」訪問平台。", "letter": "G"}, {"id": 167, "en": "GGC", "zh": "直布羅陀賭博監管局", "desc": "GGC（Gibraltar Gambling Commissioner）是直布羅陀政府設立的官方博彩監管機構，負責監督所有持牌博彩企業的合規性，包括線上博彩、實體博彩、博彩廣告與市場行為、玩家資金保護、反洗錢（AML）、技術審核與公平性、投訴處理與執法。", "letter": "G"}, {"id": 168, "en": "GGD", "zh": "直布羅陀博彩監管處", "desc": "Gibraltar Gambling Division（GGD）隸屬於直布羅陀政府數字與金融服務部，是直布羅陀博彩監管體系的行政執行核心，主要職責是代表直布羅陀發牌機關執行審查與監管工作。", "letter": "G"}, {"id": 169, "en": "GGL", "zh": "德國聯邦博彩監管局", "desc": "GGL 是德國新設立的中央級博彩監管機構，負責將原本由 16 個州各自管理的博彩業務統一集中監管。其範圍涵蓋：線上體育博彩、虛擬老虎機、線上撲克、廣告合規、反洗錢、技術認證、非法平台封鎖。GGL 的成立是歐洲監管史上重要的整合案例。", "letter": "G"}, {"id": 170, "en": "Gibraltar Gambling License (GGL)", "zh": "直布羅陀博彩牌照", "desc": "Gibraltar Gambling License 是由直布羅陀政府 Gibraltar Licensing Authority（GLA）核發的線上/實體博彩經營許可。該牌照以極高信譽、嚴格監管與低稅負聞名，廣受國際大型博彩集團採用，與 UKGC、Isle of Man、MGA 並列世界最高級別執照之一。", "letter": "G"}, {"id": 171, "en": "Ghost Betting", "zh": "幽靈投注", "desc": "幽靈投注（Ghost Betting）指玩家本人「未實際下注」，而是由第三方或團伙操控其帳戶進行投注，通常屬於安全風險或代理組織行為。觸發風控的典型特徵：IP 距離異常、短時間跨國家登入、下注時人不在線、代理擅自操控下線帳號。", "letter": "G"}, {"id": 172, "en": "Gibraltar Betting Intermediary License", "zh": "直布羅陀中介投注執照", "desc": "Betting Intermediary License 是由直布羅陀發牌機關依據《Gambling Act 2005》簽發的牌照類型，授權持牌方運營「投注撮合型」平台，允許在博彩公司與玩家之間進行中介服務。", "letter": "G"}, {"id": 173, "en": "Gibraltar Remote Betting License", "zh": "直布羅陀遠端體育博彩執照", "desc": "Remote Betting License 是由 GGD 頒發的線上體育博彩類執照，允許持牌商透過互聯網提供體育賽事投注、賠率計算與盤口管理等服務，適用範圍包括各類體育賽事、即時投注（In-Play / Live Betting）、虛擬體育等。", "letter": "G"}, {"id": 174, "en": "Gibraltar Remote Bingo License", "zh": "直布羅陀遠端賓果執照", "desc": "Remote Bingo License 允許持牌方提供在線賓果（Online Bingo）服務，包括傳統數字賓果、視頻賓果及主題化玩法（如 Slot Bingo）。", "letter": "G"}, {"id": 175, "en": "Gibraltar Remote Casino License", "zh": "直布羅陀遠端賭場執照", "desc": "Remote Casino License 是由 GGD 發放的線上賭場類綜合執照，涵蓋老虎機（Slots）、真人娛樂場（Live Casino）及桌面遊戲（Roulette、Baccarat、Blackjack）等所有 RNG 或真人互動遊戲。", "letter": "G"}, {"id": 176, "en": "Gibraltar Remote Lottery License", "zh": "直布羅陀遠端彩票執照", "desc": "Remote Lottery License 由直布羅陀政府核發，允許運營商提供在線彩票、抽獎與數字競猜類產品，通常用於運營「在線國家彩票」或「國際數字彩票平台」。", "letter": "G"}, {"id": 177, "en": "GLA", "zh": "直布羅陀博彩牌照頒發機構", "desc": "GLA（Gibraltar Licensing Authority）是直布羅陀政府設立的官方牌照核發機構，負責審核、批准與頒發所有線上與實體博彩業務的合法執照，確保申請者符合直布羅陀博彩法案（Gambling Act 2005）規定的所有條件。", "letter": "G"}, {"id": 178, "en": "GLI", "zh": "全球博彩系統檢測機構", "desc": "GLI（Gaming Laboratories International）是最早獲得各國博彩監管機構認可的第三方測試實驗室，覆蓋全球 480+ 持牌市場。其認證涵蓋線上 iGaming、陸基賭場系統、彩票與賽馬投注等領域。", "letter": "G"}, {"id": 179, "en": "GLI-11", "zh": "電子遊戲標準", "desc": "GLI-11 是由 Gaming Laboratories International（GLI）制定的國際老虎機（Electronic Gaming Devices）技術測試標準，用於確保老虎機遊戲的公平性、隨機性、安全性、技術合規。這是全球遊戲供應商在將 Slots 上架到各國市場前必須符合的核心標準。", "letter": "G"}, {"id": 180, "en": "GLI-19", "zh": "互動式博彩標準", "desc": "GLI-19 是全球最通用的線上博彩系統（Interactive Gaming Systems）技術標準，主要適用於博彩平台後台（Back Office）、錢包系統（Wallet）、投注系統（Betting Engine）、遊戲 API 管理、玩家帳戶管理系統（PAM）。所有正規牌照市場（如 MGA、Gibraltar、Ontario）都會要求平台符合 GLI-19。", "letter": "G"}, {"id": 181, "en": "Greylist", "zh": "灰名單", "desc": "灰名單（Greylist / Graylist）是介於白名單與黑名單之間的風險觀察名單，用於標記存在異常跡象但尚未達到明確違規標準的用戶、設備、IP、支付路徑或代理對象。灰名單機制常用於平台風控、反欺詐、反套利與支付審查。", "letter": "G"}, {"id": 182, "en": "Gross Gambling Revenue (GGR)", "zh": "博彩毛利", "desc": "GGR（Gross Gaming Revenue）是博彩毛利，計算方式為：毛利 = 總投注金額 - 總賠付金額。是衡量博彩業務的關鍵指標，直接反映博彩平台的收入能力。有些企業也使用 GGY（Gross Gambling Yield），兩者意思相同。", "letter": "G"}, {"id": 183, "en": "Group Control System", "zh": "群控", "desc": "群控是指透過技術工具或系統，對大量帳號或設備進行集中管理與操作的方式。該模式通常用於批量執行註冊、登入、投注或互動行為，以模擬真實用戶活動或實現規模化操作。在博彩行業中，群控常與流量操作、套利行為或帳號養成結合使用。", "letter": "G"}, {"id": 184, "en": "GCP", "zh": "菲律賓內陸實體博彩運營商", "desc": "菲律賓 GCP 牌照（Gaming Corporation Permit）是由菲律賓娛樂和遊戲公司（PAGCOR）頒發的許可證，主要用於管理和監督菲律賓境內的實體博彩運營。這類牌照適用於各種實體博彩設施，包括賭場、賽馬場和彩票等。", "letter": "G"}, {"id": 185, "en": "Hard Limit", "zh": "硬限制", "desc": "硬限制是平台對用戶投注金額或行為實施的強制限制。當觸發條件時，系統直接拒絕投注或禁止操作，用於應對高風險行為或違規情況。", "letter": "H"}, {"id": 186, "en": "Heat Mismatch", "zh": "熱度錯配", "desc": "熱度錯配指市場關注度與賠率調整幅度明顯不匹配的狀態。即某一方向投注人數、討論熱度極高，但盤口價格卻遲遲不做對應調整，甚至反向調整。", "letter": "H"}, {"id": 187, "en": "Hedge", "zh": "對沖", "desc": "對沖指透過下注相反方向或相關盤口，來減少原有注單的風險或鎖定部分利潤。常見對沖方式：已買主勝再買客勝或平局、串關快結尾時用單關反向對沖最後一場、大小盤之間構建「中間值」區間。對沖的目標不是「多賺」，而是減少波動、平滑收益。", "letter": "H"}, {"id": 188, "en": "Hedging Arbitrage", "zh": "對沖套利", "desc": "對沖套利是指玩家在同一事件的不同盤口、不同時間點或不同平台，透過同時下注相反結果，來鎖定確定性利潤或顯著降低風險敞口的投注行為。", "letter": "H"}, {"id": 189, "en": "High-intent Traffic", "zh": "精準流量", "desc": "精準流量（High-intent Traffic）是指具備明確需求和高轉化意圖的用戶流量，是博彩平台最具價值的流量類型，直接決定 ROI 與盈利能力。", "letter": "H"}, {"id": 190, "en": "Hit Ratio", "zh": "命中率", "desc": "命中率是指預測、推薦或投注結果中成功命中的比例指標，用於衡量判斷準確度與策略表現。在博彩行業中，命中率通常被用於評估推薦質量、賽事分析表現及策略穩定性，但往往需要搭配收益率與期望值共同分析。", "letter": "H"}, {"id": 191, "en": "Hong Kong Odds", "zh": "香港盤", "desc": "香港盤（Hong Kong Odds）是一種在香港、台灣等地廣泛使用的體育博彩賠率格式。與歐洲盤類似，但最大區別在於：香港盤顯示的是「純利潤」倍率，不包含本金。香港盤的賠率數值 = 淨賺金額 / 投注金額。", "letter": "H"}, {"id": 192, "en": "Hot Traffic", "zh": "熱流量", "desc": "熱流量（Hot Traffic）是指已對平台產生認知或信任的用戶流量，通常來自複訪用戶、社群用戶或再行銷用戶，具有較高轉化率與付費意願。", "letter": "H"}, {"id": 193, "en": "House Edge (Casino)", "zh": "賭場優勢", "desc": "賭場優勢（House Edge）是賭場在長期遊戲中所能獲得的數學性收益百分比。它表示賭場從每筆下注中預期的平均收益。賭場優勢是遊戲規則與賠率的數學結果，確保即使玩家短期內可能贏錢，但從長期來看賭場依然能保持穩定的利潤。", "letter": "H"}, {"id": 194, "en": "House Edge (Sports)", "zh": "莊家優勢", "desc": "莊家優勢指平台在長期統計下，透過規則/賠率設計所獲得的數學期望優勢。它不是「每局必賺」，而是「長期平均穩賺」。常來自：規則偏置（輪盤 0、21 點規則差異）、賠率 margin（體育博彩）、RTP 設計（老虎機長期返還率 < 100%）、抽水/傭金。", "letter": "H"}, {"id": 195, "en": "iGaming", "zh": "線上博彩", "desc": "iGaming 的全稱是「Interactive Gaming」（互動式遊戲）的縮寫，但現在多數是指互聯網博彩。在 iGaming 中，玩家可以透過互聯網與其他玩家進行交互，參與在線遊戲、在線博彩等娛樂活動，涵蓋在線博彩、體育投注、電子遊戲、棋牌遊戲、彩票、虛擬體育等。", "letter": "I"}, {"id": 196, "en": "iGaming Affiliate Marketing", "zh": "博彩聯盟行銷", "desc": "博彩聯盟行銷（iGaming Affiliate Marketing）說白了就是：你幫我拉玩家，我給你分成。聯盟行銷是一種基於結果付費的推廣方式，博彩平台不需要先砸廣告費，聯盟透過各種渠道幫你吸引用戶，當這些玩家完成註冊、充值或下注時，平台才按協議支付佣金。", "letter": "I"}, {"id": 197, "en": "iGaming License", "zh": "線上博彩牌照", "desc": "iGaming 博彩牌照是指授權企業合法經營在線博彩業務的許可，其中的「i」代表 Internet，即互聯網博彩的意思。iGaming 是國際上對線上博彩產業的通用稱呼，涵蓋體育投注、老虎機、真人娛樂、虛擬體育等線上博彩內容，多用於歐洲與北美地區。", "letter": "I"}, {"id": 198, "en": "In-Play Betting", "zh": "場中投注", "desc": "「場中投注」（In-Play Betting）又稱為「走地」（Live Betting），是體育博彩中的一種下注方式。與傳統的賽前投注不同，走地允許玩家在比賽進行的過程中進行投注，能夠根據比賽的即時情況來調整下注策略和選項。", "letter": "I"}, {"id": 199, "en": "Indo Odds", "zh": "印尼盤", "desc": "印尼盤（Indonesian Odds）是在印尼及東南亞地區廣泛使用的體育博彩賠率格式。正數印尼盤表示以投注額為基礎的盈利倍率，負數則代表需要投注多少才能贏得 1 單位。印尼盤與馬來盤有密切的數學關係。", "letter": "I"}, {"id": 200, "en": "Isle of Man License", "zh": "馬恩島博彩牌照", "desc": "馬恩島（Isle of Man）是知名的離岸博彩司法管轄區，其博彩監管機構（GSC）頒發的牌照被視為全球最高信譽牌照之一，以嚴格的合規要求、健全的玩家保護制度及低稅收環境著稱。", "letter": "I"}, {"id": 201, "en": "iTech Labs", "zh": "iTech Labs 認證機構", "desc": "iTech Labs 是全球知名的獨立博彩軟件測試實驗室，總部位於澳大利亞，主要為 iGaming 平台提供 RNG 公平性測試、賠率計算驗證、系統安全審查及合規認證服務。", "letter": "I"}, {"id": 202, "en": "Jackpot", "zh": "彩金 / 頭獎", "desc": "彩金（Jackpot）是老虎機或賭場遊戲中設置的最高獎勵等級。分為固定彩金（Fixed Jackpot）和累積彩金（Progressive Jackpot）兩種，累積彩金隨投注持續增長，可達到極高的獎金金額。", "letter": "J"}, {"id": 203, "en": "Juice / Vig", "zh": "抽水 / 佣金", "desc": "抽水（Juice / Vig，全稱 Vigorish）是體育博彩公司從每筆投注中收取的傭金，通常反映在賠率設計中，使所有可能結果的總賠率小於 1，從而確保平台的長期數學優勢。", "letter": "J"}, {"id": 204, "en": "Kelly Criterion", "zh": "凱利公式", "desc": "凱利公式（Kelly Criterion）是一套用於最優化投注金額的數學公式，幫助玩家根據自身勝率優勢與賠率，計算出能使長期資金增長最大化的投注比例，在職業博彩玩家中廣泛應用。", "letter": "K"}, {"id": 205, "en": "Key Number", "zh": "關鍵數字", "desc": "關鍵數字（Key Number）是體育博彩中特定讓分點，因比賽結果在該點附近特別常見而具有重要參考意義。在美式足球中，3 和 7 是最重要的關鍵數字。", "letter": "K"}, {"id": 206, "en": "KPI", "zh": "關鍵績效指標", "desc": "KPI（Key Performance Indicators，關鍵績效指標）是博彩平台用來衡量業務表現的核心數據指標，常見 KPI 包括：GGR（博彩毛利）、NGR（淨博彩收益）、DAU/MAU（日活/月活用戶）、首存轉化率、留存率等。", "letter": "K"}, {"id": 207, "en": "KSA", "zh": "荷蘭博彩監管局", "desc": "KSA（Kansspelautoriteit，荷蘭博彩監管局）是荷蘭負責監管和執法博彩活動的政府機構，主要任務包括發放牌照、監督合規、打擊非法博彩，以及執行責任博彩政策（包括 CRUKS 自我排除系統）。", "letter": "K"}, {"id": 208, "en": "KYC", "zh": "了解你的客戶", "desc": "KYC（Know Your Customer，了解你的客戶）是博彩平台執行反洗錢（AML）法規的核心程序，要求平台在玩家開戶、大額存取款或可疑交易時驗證其身份，包括政府頒發的身份證明、地址證明、資金來源說明等。", "letter": "K"}, {"id": 209, "en": "Lay Bet", "zh": "做莊 / 反買", "desc": "做莊（Lay Bet）是指玩家在交易所投注平台上扮演「莊家」角色，接受其他玩家的投注。做莊者相信該結果不會發生，若結果確實未發生則獲利，是交易所博彩平台（如 Betfair）的核心機制。", "letter": "L"}, {"id": 210, "en": "Liability", "zh": "賠付責任", "desc": "賠付責任（Liability）是指博彩平台在某一賽事或盤口上面臨的潛在最大虧損金額。當玩家下注金額過於集中於某一方向時，平台的賠付責任隨之增加，通常需要透過調整賠率或限制下注來管理。", "letter": "L"}, {"id": 211, "en": "Line Movement", "zh": "盤口移動", "desc": "盤口移動（Line Movement）指賠率或讓分點在開盤後發生的變化，反映了資金流向、新資訊或市場情緒的變化。分析盤口移動方向與幅度是判斷「聰明錢」流向的重要工具。", "letter": "L"}, {"id": 212, "en": "Live Betting", "zh": "走地投注", "desc": "走地投注（Live Betting / In-Play Betting）是指在體育賽事進行中進行即時投注的方式。走地賠率根據比賽實時進展動態調整，是現代體育博彩中最受歡迎的投注形式之一。", "letter": "L"}, {"id": 213, "en": "Live Casino", "zh": "真人娛樂場", "desc": "真人娛樂場（Live Casino）是線上博彩中透過視頻串流技術，讓玩家與真人荷官即時互動進行遊戲的平台。常見遊戲包括真人百家樂、真人輪盤、真人21點等，結合了線上博彩的便利性與實體賭場的臨場感。", "letter": "L"}, {"id": 214, "en": "Loyalty Program", "zh": "忠誠度計畫", "desc": "忠誠度計畫（Loyalty Program）是博彩平台為鼓勵玩家持續參與而設計的獎勵體系，通常包含積分累積、VIP 等級晉升、專屬返水、生日優惠、優先提款等福利，是提升玩家留存率和 LTV 的核心工具。", "letter": "L"}, {"id": 215, "en": "Malaysian Odds", "zh": "馬來盤", "desc": "馬來盤（Malaysian Odds）是東南亞地區廣泛使用的體育博彩賠率格式。正數馬來盤表示贏得每 1 單位投注的淨利潤；負數馬來盤表示需要投注多少才能贏得 1 單位淨利潤。", "letter": "M"}, {"id": 216, "en": "Margin", "zh": "抽水比例 / 利潤率", "desc": "抽水比例（Margin）是博彩公司嵌入賠率中的利潤空間，使所有可能結果的總隱含概率超過 100%。抽水越低，玩家的實際期望值越高。主流體育博彩的抽水比例通常在 2-10% 之間。", "letter": "M"}, {"id": 217, "en": "Match Fixing", "zh": "假球 / 操控比賽", "desc": "假球（Match Fixing）是指運動員、球隊、裁判或相關人員受賄或密謀，以達到特定比賽結果的非法行為。不僅違反運動誠信，也是刑事犯罪，博彩公司通常具備監測系統，透過異常投注模式偵測可疑的比賽操控行為。", "letter": "M"}, {"id": 218, "en": "Max Bet", "zh": "最高投注限額", "desc": "最高投注限額（Max Bet）是博彩平台對單筆投注設定的上限金額。不同盤口、遊戲類型及客戶等級可能有不同的最高限額設置，主要用於風險控管。", "letter": "M"}, {"id": 219, "en": "MGA", "zh": "馬耳他博彩管理局", "desc": "MGA（Malta Gaming Authority，馬耳他博彩管理局）是全球最重要的線上博彩監管機構之一，為數百家 iGaming 平台提供牌照。MGA 執照要求運營商符合嚴格的反洗錢、玩家保護、公平遊戲及技術合規標準。", "letter": "M"}, {"id": 220, "en": "Money Laundering", "zh": "洗錢", "desc": "洗錢（Money Laundering）是指將非法所得資金透過合法途徑「清洗」，使其看似合法收入的金融犯罪行為。博彩行業因現金流量大、匿名性高，常被用作洗錢工具，各國監管要求博彩平台建立完整的 AML 體系防範。", "letter": "M"}, {"id": 221, "en": "Multi-game Parlay", "zh": "過關串場", "desc": "過關串場（Parlay / Accumulator）是將多場投注串聯成一注的投注方式，所有選項都必須命中才能獲得彩金，但賠率為各場賠率的連乘積，潛在收益極高。", "letter": "M"}, {"id": 222, "en": "Negative Expected Value", "zh": "負期望值", "desc": "負期望值（Negative EV / -EV）指在長期下注中，玩家預期會虧損的投注情況。幾乎所有博彩遊戲對玩家而言都是負期望值的，因為平台嵌入了抽水或莊家優勢。", "letter": "N"}, {"id": 223, "en": "Net Gaming Revenue (NGR)", "zh": "淨博彩收益", "desc": "淨博彩收益（NGR）= GGR（博彩毛利）- 紅利成本 - 支付成本 - 監管費用。NGR 是反映平台真實盈利能力的核心財務指標，是 B2B 合作及代理分潤計算的常用基礎。", "letter": "N"}, {"id": 224, "en": "No-action Bet", "zh": "無效注單", "desc": "無效注單（No-action Bet）是指因特定原因（如比賽取消、改期、資訊錯誤）導致投注被平台宣告作廢，並全額退回本金的情況。無效注單不計入輸贏，不影響流水統計。", "letter": "N"}, {"id": 225, "en": "Odds Compiler", "zh": "賠率分析師", "desc": "賠率分析師（Odds Compiler）是博彩公司內部負責研究賽事、評估概率並制定初始賠率的專業人員，結合統計模型、歷史數據、球隊資訊及市場動態，開出符合公司風控需求的盤口價格。", "letter": "O"}, {"id": 226, "en": "Odds Format", "zh": "賠率格式", "desc": "賠率格式（Odds Format）是表示博彩賠率的不同方式，主要包括：歐洲盤（小數盤）、英國盤（分數盤）、美式盤、香港盤、馬來盤、印尼盤等。", "letter": "O"}, {"id": 227, "en": "Odds Movement", "zh": "賠率移動", "desc": "賠率移動（Odds Movement）指盤口賠率從開盤到封盤之間的變化軌跡。賠率變化反映資金流向和市場情緒，分析賠率移動方向是判斷「聰明錢」流向的重要參考。", "letter": "O"}, {"id": 228, "en": "Odd/Even Betting", "zh": "單雙投注", "desc": "單雙投注（Odd/Even Betting）是博彩中最簡單的一種投注形式，玩家只需預測結果是單數還是雙數。雖然看似各占 50% 機率，但賭場通常設計了莊家優勢，使單雙投注長期對玩家呈負期望值。", "letter": "O"}, {"id": 229, "en": "Offshore Betting", "zh": "離岸博彩", "desc": "離岸博彩（Offshore Betting）是指在玩家所在地司法管轄區以外的境外平台進行的博彩活動。離岸博彩平台通常在監管寬鬆或稅收優惠的司法管轄區（如馬耳他、直布羅陀）持牌運營。", "letter": "O"}, {"id": 230, "en": "Onboarding", "zh": "用戶引導 / 開戶流程", "desc": "用戶引導（Onboarding）是指新玩家從首次訪問平台到完成註冊、KYC 驗證、首次存款並開始投注的完整流程。流暢的 Onboarding 設計是提高首存轉化率的關鍵。", "letter": "O"}, {"id": 231, "en": "Over/Under Betting", "zh": "大小盤投注", "desc": "大小盤投注（Over/Under Betting）是體育博彩中最流行的投注類型之一，玩家預測比賽某一統計數值（如總比分、角球數）是否超過（大）或低於（小）博彩公司設定的基準線。", "letter": "O"}, {"id": 232, "en": "PAGCOR", "zh": "菲律賓娛樂和遊戲公司", "desc": "PAGCOR（Philippine Amusement and Gaming Corporation）是菲律賓政府設立的博彩監管機構和國有博彩運營商，負責監督和發放菲律賓境內所有博彩牌照，包括實體賭場、電子賭博機和線上博彩等。", "letter": "P"}, {"id": 233, "en": "PAM", "zh": "玩家帳戶管理系統", "desc": "PAM（Player Account Management）是博彩平台後台的核心系統，負責管理玩家帳戶的所有功能，包括帳戶開立與 KYC、存取款管理、紅利發放與追蹤、玩家分層、風控標記、責任博彩工具等。", "letter": "P"}, {"id": 234, "en": "Payment Gateway", "zh": "支付閘道", "desc": "支付閘道（Payment Gateway）是博彩平台與金融機構之間的技術橋梁，負責安全地處理玩家的存款和提款交易。iGaming 平台通常需要整合多個支付閘道以覆蓋不同地區和支付方式的需求。", "letter": "P"}, {"id": 235, "en": "PEP", "zh": "政治敏感人物", "desc": "PEP（Politically Exposed Person，政治敏感人物）是指在政府、司法或軍事等公共職位上擔任或曾擔任重要職務的人士及其直系親屬。博彩平台必須識別 PEP 客戶，並對其進行加強型盡職調查（EDD）。", "letter": "P"}, {"id": 236, "en": "Player Lifetime Value (LTV)", "zh": "玩家終身價值", "desc": "玩家終身價值（LTV，Lifetime Value）是指單一玩家在其整個使用週期內為平台貢獻的預期總收益，是評估獲客成本（CAC）是否合理的核心指標，也是制定用戶留存策略的重要依據。", "letter": "P"}, {"id": 237, "en": "Player Protection", "zh": "玩家保護", "desc": "玩家保護（Player Protection）是博彩監管的核心原則，要求平台實施措施保障玩家權益，包括公平遊戲認證、資金安全隔離、負責任博彩工具（自我限制、自我排除）、透明條款及有效的投訴處理機制。", "letter": "P"}, {"id": 238, "en": "POGO", "zh": "菲律賓線上博彩運營商", "desc": "POGO（Philippine Offshore Gaming Operator）是指在菲律賓持有 PAGCOR 牌照、向菲律賓境外玩家提供線上博彩服務的運營商。POGO 行業因稅務、勞工及安全問題受到廣泛關注，並於 2024 年被菲律賓政府宣布全面禁止。", "letter": "P"}, {"id": 239, "en": "Problem Gambling", "zh": "問題賭博", "desc": "問題賭博（Problem Gambling）是指賭博行為超出個人控制範圍，導致財務、心理、社會或家庭問題的狀態。監管機構要求博彩平台實施完整的責任博彩措施，包括自我排除、存款限額、冷靜期等工具。", "letter": "P"}, {"id": 240, "en": "Progressive Jackpot", "zh": "累積彩金", "desc": "累積彩金（Progressive Jackpot）是一種隨著玩家投注不斷增長的彩金池，直到有玩家觸發特定條件獲得大獎為止。累積彩金可跨越多個遊戲機台或線上平台，形成巨額獎金，是吸引玩家的核心機制之一。", "letter": "P"}, {"id": 241, "en": "Provably Fair", "zh": "可驗證公平", "desc": "可驗證公平（Provably Fair）是加密貨幣博彩中的一種技術機制，允許玩家在遊戲結束後透過密碼學方法獨立驗證每一局的結果是否公平，是區塊鏈博彩平台相較於傳統平台的核心競爭優勢。", "letter": "P"}, {"id": 242, "en": "Qualifying Bet", "zh": "資格投注", "desc": "資格投注（Qualifying Bet）是玩家在領取某些促銷優惠（如免費投注、匹配紅利）之前必須先完成的前提投注，通常有特定的最低賠率要求和投注類型限制。", "letter": "Q"}, {"id": 243, "en": "Rake", "zh": "手續費 / 抽傭", "desc": "手續費（Rake）是博彩平台或撲克室從每局遊戲中收取的服務費用，通常以百分比計算（如撲克桌總彩池的 3-5%）。在體育博彩中，Rake 的概念類似於抽水（Vig / Juice）。", "letter": "R"}, {"id": 244, "en": "Recreational Bettor", "zh": "休閒型玩家", "desc": "休閒型玩家（Recreational Bettor）是指以娛樂為主要目的的博彩參與者，而非以盈利為目標的職業玩家。休閒型玩家通常投注金額較小、頻率不穩定，是博彩平台利潤的主要來源群體。", "letter": "R"}, {"id": 245, "en": "Reload Bonus", "zh": "再存款紅利", "desc": "再存款紅利（Reload Bonus）是博彩平台向既有玩家提供的存款獎勵，通常在玩家第二次或後續存款時觸發，主要目的是提升玩家的長期活躍度與留存率。", "letter": "R"}, {"id": 246, "en": "Responsible Gambling", "zh": "責任博彩", "desc": "責任博彩（Responsible Gambling，RG）是博彩監管和運營的核心原則，主要工具包括：自我設定限額、自我排除、冷靜期、強制休息提醒、問題賭博支援服務等。", "letter": "R"}, {"id": 247, "en": "Return on Investment (ROI)", "zh": "投資回報率", "desc": "投資回報率（ROI）在博彩領域指投注者在特定期間內的淨收益與總投注額的比值，通常以百分比表示。職業玩家通常以長期 ROI 評估投注策略的有效性。", "letter": "R"}, {"id": 248, "en": "RNG", "zh": "隨機數生成器", "desc": "RNG（Random Number Generator，隨機數生成器）是所有電子博彩遊戲的核心技術，確保每次遊戲結果完全隨機且不可預測。合規的博彩平台必須使用經第三方認證的 RNG，以保障遊戲公平性。", "letter": "R"}, {"id": 249, "en": "Risk Management", "zh": "風險管理", "desc": "風險管理（Risk Management）是博彩平台的核心運營功能，包括：監控盤口風險暴露、識別套利或異常投注行為、動態調整賠率或限額、向更大的市場轉移風險等。", "letter": "R"}, {"id": 250, "en": "Rolling Commission", "zh": "流水佣金", "desc": "流水佣金（Rolling Commission）是代理分潤模式的一種，代理按旗下玩家的有效投注流水獲得一定比例的佣金，而非按輸贏結果計算。流水佣金模式激勵代理鼓勵玩家持續投注。", "letter": "R"}, {"id": 251, "en": "RTP", "zh": "返還率", "desc": "RTP（Return to Player，玩家返還率）是老虎機或電子遊戲在長期運行下，理論上返還給玩家的總投注金額比例，通常介於 90%-99%。RTP 越高對玩家越有利，但短期波動可能與理論值差異較大。", "letter": "R"}, {"id": 252, "en": "SAR", "zh": "可疑交易報告", "desc": "SAR（Suspicious Activity Report，可疑交易報告）是金融機構和博彩平台在發現疑似洗錢、恐怖融資或其他可疑交易時，必須向監管機構提交的正式報告，是 AML 合規體系的重要組成部分。", "letter": "S"}, {"id": 253, "en": "Scatter Symbol", "zh": "散布符號", "desc": "Scatter 符號（Scatter Symbol）是老虎機中可觸發特殊功能（通常為免費遊戲或獎金回合）的特殊符號，無需出現在特定的支付線上，只要在任意位置出現足夠數量即可觸發。", "letter": "S"}, {"id": 254, "en": "Seamless Wallet", "zh": "免轉錢包", "desc": "免轉錢包（Seamless Wallet）是一種先進的平台架構，允許玩家在不同遊戲供應商之間自由切換，無需手動轉移資金，提供更流暢的用戶體驗，是現代 iGaming 平台的主流技術方案。", "letter": "S"}, {"id": 255, "en": "Sharp Money", "zh": "聰明錢", "desc": "聰明錢（Sharp Money）是指來自職業玩家或具有顯著資訊優勢的投注者的大額資金。聰明錢的流向被視為市場走向的重要參考，博彩公司通常會迅速調整賠率以應對聰明錢的衝擊。", "letter": "S"}, {"id": 256, "en": "Sharp Bettor", "zh": "職業玩家", "desc": "職業玩家（Sharp Bettor）是指具備系統性分析能力、長期保持正期望值的專業博彩投注者。職業玩家通常被博彩公司識別並限制投注金額，因為他們的長期表現能夠持續「擊敗市場」。", "letter": "S"}, {"id": 257, "en": "Skin", "zh": "平台皮膚 / 白牌", "desc": "平台皮膚（Skin）在 iGaming 中指使用第三方平台技術搭建的獨立品牌網站，外觀品牌為自有，但底層系統共用主平台。Skin 模式讓小型運營商能快速進入市場。", "letter": "S"}, {"id": 258, "en": "Slot Game", "zh": "老虎機遊戲", "desc": "老虎機遊戲（Slot Game）是賭場和 iGaming 平台中最受歡迎的遊戲類型，透過旋轉捲軸並根據符號組合決定獎金。現代線上老虎機具有豐富的主題、特色功能（Wild、Scatter、Free Spin、Bonus Round）和多種彩金結構。", "letter": "S"}, {"id": 259, "en": "Square Bettor", "zh": "大眾玩家 / 業餘玩家", "desc": "大眾玩家（Square Bettor）是指依賴直覺、情緒或媒體資訊下注的普通休閒型投注者，與職業玩家（Sharp）相對。大眾玩家通常過度下注熱門隊伍，導致賠率偏離真實概率。", "letter": "S"}, {"id": 260, "en": "Staking Plan", "zh": "投注計畫", "desc": "投注計畫（Staking Plan）是投注者為管理資金和控制風險而制定的系統性投注金額規則，包括固定金額投注法、固定比例投注法（Kelly 準則）、馬丁格爾系統等。", "letter": "S"}, {"id": 261, "en": "Sure Bet", "zh": "無風險套利投注", "desc": "無風險套利投注（Sure Bet / Arbitrage Bet）是指透過在不同平台對同一事件的所有可能結果下注，利用賠率差異確保無論結果如何都能獲利的投注策略，是打水（Arbitrage Betting）的核心概念。", "letter": "S"}, {"id": 262, "en": "Third-party Payment", "zh": "三方支付", "desc": "三方支付（Third-party Payment）是指由獨立的支付服務提供商（如 PayPal、Neteller、Skrill）處理博彩平台與玩家之間資金流轉的支付模式，提供安全、快速的存提款渠道。", "letter": "T"}, {"id": 263, "en": "Tilt", "zh": "情緒失控", "desc": "Tilt 是從撲克術語借用來的博彩概念，指玩家因連續虧損、情緒激動導致判斷力下降，開始做出非理性投注決策的狀態。處於 Tilt 狀態的玩家往往追單、衝倍、盲目加大投注，是問題賭博行為的重要預警信號。", "letter": "T"}, {"id": 264, "en": "Tipster", "zh": "博彩建議提供者", "desc": "Tipster 是指提供體育賽事投注建議（Tip）的人或機構，可能是免費或付費的服務。高質量的 Tipster 基於數據分析和長期跟蹤記錄提供有價值的建議。", "letter": "T"}, {"id": 265, "en": "Total Goals", "zh": "總進球數", "desc": "總進球數（Total Goals）是足球博彩中最常見的盤口類型之一，玩家預測兩支球隊合計進球數是否超過或低於博彩公司設定的基準線（如 2.5 球）。", "letter": "T"}, {"id": 266, "en": "Traffic Arbitrage", "zh": "流量套利", "desc": "流量套利（Traffic Arbitrage）是指通過低成本渠道購買流量並轉化為更高價值的博彩用戶，從中賺取差價的行銷模式，是博彩推廣生態中常見的商業策略。", "letter": "T"}, {"id": 267, "en": "Transaction Monitoring", "zh": "交易監控", "desc": "交易監控（Transaction Monitoring）是博彩平台 AML 合規系統的核心功能，用於即時或批量分析玩家的存取款行為模式，識別可疑交易並觸發 SAR 報告機制。", "letter": "T"}, {"id": 268, "en": "Turnover Requirement", "zh": "流水要求", "desc": "流水要求（Turnover Requirement / Wagering Requirement）是博彩平台對紅利提款設定的條件，規定玩家必須在提款前完成的最低投注總額。例如「30倍流水要求」意味著玩家需完成紅利 30 倍的有效投注。", "letter": "T"}, {"id": 269, "en": "UKGC", "zh": "英國博彩委員會", "desc": "UKGC（UK Gambling Commission，英國博彩委員會）是全球最嚴格、最具影響力的博彩監管機構之一，負責監督英國境內所有形式的博彩活動。UKGC 牌照要求運營商符合極高的合規標準，包括 AML、RG、廣告規範及玩家保護措施。", "letter": "U"}, {"id": 270, "en": "Underdog", "zh": "弱隊 / 下盤", "desc": "弱隊（Underdog）是指在賽前被市場認定獲勝機率較低、通常接受讓分的一方。下盤的賠率通常較高，在某些情況下，弱隊可能因市場過度偏向強隊而形成有價值的投注機會。", "letter": "U"}, {"id": 271, "en": "User Acquisition", "zh": "用戶獲取", "desc": "用戶獲取（User Acquisition, UA）是指博彩平台透過各種行銷渠道吸引新用戶註冊並完成首存的完整流程。衡量用戶獲取效率的核心指標包括：獲客成本（CAC）、轉化率、首存率等。", "letter": "U"}, {"id": 272, "en": "User Churn", "zh": "用戶流失", "desc": "用戶流失（User Churn）是指博彩平台在一定時期內失去活躍用戶的比率。高流失率意味著平台留存能力不足，可能源於用戶體驗差、促銷不吸引人、競爭激烈或玩家自然週期結束。", "letter": "U"}, {"id": 273, "en": "Value Bet", "zh": "價值投注", "desc": "價值投注（Value Bet）是指玩家認為博彩公司給出的賠率高於真實概率所對應賠率的投注機會。長期持續識別和捕捉價值投注，是職業玩家建立穩定正期望值的核心策略。", "letter": "V"}, {"id": 274, "en": "VIP Player", "zh": "VIP 玩家", "desc": "VIP 玩家是博彩平台中消費金額最高、最活躍的頂級玩家群體，通常享有專屬客服、更高限額、更優厚的返水、生日禮物、快速出款通道等特殊待遇。", "letter": "V"}, {"id": 275, "en": "Vigorish (Vig)", "zh": "抽水 / 稅水", "desc": "抽水（Vigorish / Vig）是博彩公司嵌入賠率中的利潤空間，確保無論比賽結果如何，平台長期都能保持數學優勢。透過「讓所有結果的隱含概率之和超過 100%」來實現。", "letter": "V"}, {"id": 276, "en": "Virtual Sports", "zh": "虛擬體育", "desc": "虛擬體育（Virtual Sports）是使用電腦模擬和 RNG 技術生成的虛擬體育賽事，全天 24 小時不間斷提供內容，常見類型包括虛擬足球、虛擬賽馬、虛擬網球等。", "letter": "V"}, {"id": 277, "en": "Volatility", "zh": "波動性", "desc": "波動性（Volatility / Variance）在老虎機遊戲中描述玩家資金波動的劇烈程度。高波動性遊戲獎金頻率低但單次獎金高；低波動性遊戲獎金頻率高但金額小。玩家可根據自身風險偏好選擇適合的遊戲。", "letter": "V"}, {"id": 278, "en": "Wagering Requirement", "zh": "打碼量要求", "desc": "打碼量要求（Wagering Requirement）是博彩平台對紅利提款設定的條件，規定玩家必須在提款前完成紅利金額若干倍的有效投注。例如「30倍打碼要求」的 100 元紅利，玩家需完成 3,000 元有效投注才能提款。", "letter": "W"}, {"id": 279, "en": "Welcome Bonus", "zh": "歡迎紅利", "desc": "歡迎紅利（Welcome Bonus）是博彩平台吸引新玩家的最主要促銷工具，通常在新用戶完成首次存款後觸發，包括存款匹配紅利（如 100% 首存匹配）、免費旋轉（Free Spins）等形式。", "letter": "W"}, {"id": 280, "en": "Whale", "zh": "鯨魚玩家", "desc": "鯨魚玩家（Whale）是指投注金額極高的頂級玩家，對博彩平台 GGR 貢獻佔比遠超普通玩家。鯨魚玩家是平台利潤的核心來源，同時也是最大的風險來源。", "letter": "W"}, {"id": 281, "en": "White Label", "zh": "白牌 / 包網", "desc": "白牌（White Label）是一種商業模式，博彩平台提供商提供完整的技術基礎設施和遊戲內容，讓合作方以自有品牌運營博彩網站。白牌模式使小型運營商能夠快速以低成本進入市場。", "letter": "W"}, {"id": 282, "en": "Withdrawal", "zh": "提款 / 出款", "desc": "提款（Withdrawal）是玩家將博彩帳戶餘額轉移至個人帳戶的操作，通常需要通過 KYC 驗證和反洗錢審查。提款速度和流暢度是影響玩家體驗的關鍵因素。", "letter": "W"}, {"id": 283, "en": "xG (Expected Goals)", "zh": "預期進球值", "desc": "xG（Expected Goals，預期進球值）是現代足球數據分析中衡量射門機會質量的統計指標，反映某次射門轉化為進球的統計概率。博彩公司和分析師使用 xG 評估球隊真實實力，輔助制定更精準的盤口和投注決策。", "letter": "X"}, {"id": 284, "en": "Yield", "zh": "收益率", "desc": "收益率（Yield）是博彩分析中衡量投注策略長期表現的指標，計算方式為：（總獲利 ÷ 總投注額）× 100%。正 Yield 表示盈利策略，負 Yield 表示虧損。職業玩家通常以長期 Yield 作為評估投注策略效果的核心標準。", "letter": "Y"}, {"id": 285, "en": "Zero Commission Baccarat", "zh": "零佣百家樂", "desc": "零佣百家樂（Zero Commission Baccarat）是百家樂的一種變體玩法，取消了莊家獲勝時通常抽取的 5% 佣金。作為補償，特定莊家獲勝組合的賠付會有所不同，整體莊家優勢與傳統百家樂相近。", "letter": "Z"}, {"id": 286, "en": "Zero Risk Bet", "zh": "零風險投注", "desc": "零風險投注（Zero Risk Bet）是玩家利用博彩平台的優惠條款（如免費投注、配對紅利）構建的無風險或低風險投注結構，確保在任何結果下都不會虧損。", "letter": "Z"}];
+var L=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+
+var curL="all", fi=0, fo=T.map(function(_,i){return i;}), qs=null;
+
+document.getElementById("ov").addEventListener("click", function(e){
+  if(e.target===this) closeM();
+});
+document.getElementById("fc").addEventListener("click", flip);
+document.getElementById("btnPrev").addEventListener("click", fPrev);
+document.getElementById("btnNext").addEventListener("click", fNext);
+document.getElementById("btnShuffle").addEventListener("click", fShuffle);
+document.getElementById("si").addEventListener("input", function(){ doSearch(this.value); });
+document.querySelectorAll(".tab").forEach(function(b){
+  b.addEventListener("click", function(){ switchTab(this.dataset.tab); });
+});
+
+function buildAlpha(){
+  var nav=document.getElementById("aN");
+  var ab=document.createElement("button");
+  ab.className="alpha-btn on"; ab.textContent="全部"; ab.dataset.l="all";
+  ab.addEventListener("click", function(){ fLetter("all",this); });
+  nav.appendChild(ab);
+  L.forEach(function(l){
+    var b=document.createElement("button");
+    b.className="alpha-btn"; b.textContent=l; b.dataset.l=l;
+    b.addEventListener("click", function(){ fLetter(this.dataset.l,this); });
+    nav.appendChild(b);
+  });
+}
+
+function fLetter(l,btn){
+  curL=l;
+  document.querySelectorAll(".alpha-btn").forEach(function(b){ b.classList.remove("on"); });
+  btn.classList.add("on");
+  document.getElementById("si").value="";
+  renderTerms(filtered());
+}
+
+function filtered(q){
+  var r=curL==="all"?T:T.filter(function(t){ return t.letter===curL; });
+  if(q){
+    var lq=q.toLowerCase();
+    r=r.filter(function(t){
+      return t.en.toLowerCase().indexOf(lq)>=0 || t.zh.indexOf(q)>=0 || t.desc.indexOf(q)>=0;
+    });
+  }
+  return r;
+}
+
+function esc(s){ var d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+function renderTerms(arr){
+  var el=document.getElementById("tL");
+  if(!arr.length){ el.textContent="找不到符合的術語"; el.style.padding="40px 0"; el.style.color="var(--muted)"; el.style.textAlign="center"; return; }
+  el.style.padding=""; el.style.color=""; el.style.textAlign="";
+  var frag=document.createDocumentFragment();
+  var ll="";
+  arr.forEach(function(t){
+    if(curL==="all"&&t.letter!==ll){
+      ll=t.letter;
+      var hdr=document.createElement("div");
+      hdr.className="sec-hdr"; hdr.textContent="── "+t.letter+" ──";
+      frag.appendChild(hdr);
+    }
+    var card=document.createElement("div");
+    card.className="card";
+    var hdr2=document.createElement("div"); hdr2.className="card-hdr";
+    var en=document.createElement("div"); en.className="card-en"; en.textContent=t.en;
+    var num=document.createElement("div"); num.className="card-num"; num.textContent="#"+t.id;
+    hdr2.appendChild(en); hdr2.appendChild(num);
+    var zh=document.createElement("div"); zh.className="card-zh"; zh.textContent=t.zh;
+    var prev=document.createElement("div"); prev.className="card-preview"; prev.textContent=t.desc.slice(0,80)+(t.desc.length>80?"...":"");
+    card.appendChild(hdr2); card.appendChild(zh); card.appendChild(prev);
+    card.addEventListener("click", (function(id){ return function(){ openM(id); }; })(t.id));
+    frag.appendChild(card);
+  });
+  el.innerHTML="";
+  el.appendChild(frag);
+}
+
+function doSearch(q){
+  curL="all";
+  document.querySelectorAll(".alpha-btn").forEach(function(b){ b.classList.remove("on"); });
+  document.querySelector(".alpha-btn").classList.add("on");
+  renderTerms(filtered(q));
+}
+
+function openM(id){
+  var t=null;
+  for(var i=0;i<T.length;i++){ if(T[i].id===id){ t=T[i]; break; } }
+  if(!t) return;
+  document.getElementById("mTag").textContent="#"+t.id+" · "+t.letter;
+  document.getElementById("mEn").textContent=t.en;
+  document.getElementById("mZh").textContent=t.zh;
+  document.getElementById("mDesc").textContent=t.desc;
+  document.getElementById("ov").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+function closeM(){
+  document.getElementById("ov").classList.remove("open");
+  document.body.style.overflow="";
+}
+
+function rfCard(){
+  var t=T[fo[fi]];
+  document.getElementById("fEn").textContent=t.en;
+  document.getElementById("fZh").textContent=t.zh;
+  document.getElementById("fDesc").textContent=t.desc;
+  document.getElementById("fp").textContent=(fi+1)+" / "+fo.length;
+  document.getElementById("ff").style.width=((fi+1)/fo.length*100).toFixed(1)+"%";
+  document.getElementById("fc").classList.remove("flipped");
+}
+function flip(){ document.getElementById("fc").classList.toggle("flipped"); }
+function fNext(){ if(fi<fo.length-1){ fi++; rfCard(); } }
+function fPrev(){ if(fi>0){ fi--; rfCard(); } }
+function fShuffle(){
+  for(var i=fo.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var x=fo[i]; fo[i]=fo[j]; fo[j]=x;
+  }
+  fi=0; rfCard();
+}
+
+function startQuiz(){
+  var sh=T.slice().sort(function(){ return Math.random()-.5; });
+  qs={q:sh, c:0, s:0, done:false};
+  renderQuiz();
+}
+
+function renderQuiz(){
+  var w=document.getElementById("qW");
+  if(qs.c>=qs.q.length){
+    var p=Math.round(qs.s/qs.q.length*100);
+    w.innerHTML="";
+    var sc=document.createElement("div"); sc.className="score";
+    var sn=document.createElement("div"); sn.className="score-n"; sn.textContent=p+"%";
+    var sl=document.createElement("div"); sl.className="score-l";
+    sl.textContent="正確率 "+qs.s+" / "+qs.q.length+" 題";
+    var sr=document.createElement("button"); sr.className="score-r"; sr.textContent="🔄 重新測驗";
+    sr.addEventListener("click", startQuiz);
+    sc.appendChild(sn); sc.appendChild(sl); sc.appendChild(sr);
+    w.appendChild(sc);
+    return;
+  }
+  var q=qs.q[qs.c];
+  var wrong=[];
+  var pool=T.slice().sort(function(){ return Math.random()-.5; });
+  for(var i=0;i<pool.length&&wrong.length<3;i++){
+    if(pool[i].id!==q.id) wrong.push(pool[i]);
+  }
+  var opts=[q].concat(wrong).sort(function(){ return Math.random()-.5; });
+  var useEn=Math.random()<.5;
+  var qt=useEn?q.en:q.zh;
+  var ql=useEn?"以下英文術語的中文是？":"以下中文術語的英文是？";
+
+  w.innerHTML="";
+  var hdr=document.createElement("div"); hdr.className="quiz-hdr";
+  hdr.textContent="第 "+(qs.c+1)+" / "+qs.q.length+" 題　得分："+qs.s;
+  var qBox=document.createElement("div"); qBox.className="quiz-q";
+  var qlEl=document.createElement("div"); qlEl.className="quiz-ql"; qlEl.textContent=ql;
+  var qtEl=document.createElement("div"); qtEl.className="quiz-qt"; qtEl.textContent=qt;
+  qBox.appendChild(qlEl); qBox.appendChild(qtEl);
+  var optsDiv=document.createElement("div"); optsDiv.className="opts";
+  var fb=document.createElement("div"); fb.className="fb"; fb.id="fb";
+  var nxtBtn=document.createElement("button"); nxtBtn.className="nxt-btn"; nxtBtn.id="nxtBtn";
+  nxtBtn.textContent=qs.c+1<qs.q.length?"下一題 →":"查看成績 🏆";
+  nxtBtn.addEventListener("click", function(){ qs.c++; qs.done=false; renderQuiz(); });
+
+  opts.forEach(function(o){
+    var ot=useEn?o.zh:o.en;
+    var isOk=(o.id===q.id);
+    var btn=document.createElement("button");
+    btn.className="opt"; btn.textContent=ot;
+    btn.addEventListener("click", (function(b2,ok){ return function(){ ansQ(b2,ok,q,fb,nxtBtn); }; })(btn,isOk));
+    optsDiv.appendChild(btn);
+  });
+
+  w.appendChild(hdr); w.appendChild(qBox); w.appendChild(optsDiv);
+  w.appendChild(fb); w.appendChild(nxtBtn);
+}
+
+function ansQ(btn,isOk,q,fb,nxtBtn){
+  if(qs.done) return;
+  qs.done=true;
+  if(isOk) qs.s++;
+  document.querySelectorAll(".opt").forEach(function(b){ b.classList.add("dis"); });
+  if(isOk){
+    btn.classList.add("correct");
+    fb.className="fb ok show"; fb.textContent="✅ 正確！";
+  } else {
+    btn.classList.add("wrong");
+    fb.className="fb bad show";
+    fb.textContent="❌ 錯誤。正確答案："+q.zh+" / "+q.en;
+  }
+  nxtBtn.classList.add("show");
+}
+
+function switchTab(name){
+  document.querySelectorAll(".page").forEach(function(p){ p.classList.remove("active"); });
+  document.querySelectorAll(".tab").forEach(function(b){ b.classList.remove("on"); });
+  document.getElementById("p-"+name).classList.add("active");
+  document.getElementById("t-"+name).classList.add("on");
+  if(name==="flash") rfCard();
+  if(name==="quiz"&&!qs) startQuiz();
+}
+
+buildAlpha();
+renderTerms(T);
+rfCard();
+</script>
+</body>
+</html>
